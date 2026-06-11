@@ -58,8 +58,8 @@ def show():
         risk_profile = st.session_state.risk_profile
         st.success("✅ 测评已完成！")
         st.markdown(
-            f"**风险等级：** {risk_profile.risk_level_label} "
-            f"（评分：{risk_profile.total_score * 100:.0f}%）"
+            f"**风险等级：** {risk_profile['risk_level_label']} "
+            f"（评分：{risk_profile['total_score'] * 100:.0f}%）"
         )
         render_risk_result(risk_profile)
 

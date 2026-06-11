@@ -7,8 +7,8 @@ def render_sidebar():
     """Render the common sidebar with navigation and progress."""
     with st.sidebar:
         from pathlib import Path
-        logo_path = Path(__file__).parent.parent.parent.parent / "assets" / "磐策logo.jpg"
-        st.image(str(logo_path), width=120)
+        logo_path = Path(__file__).parent.parent.parent.parent / "assets" / "pance_logo.png"
+        st.image(str(logo_path), width=100)
         st.title("磐策")
         st.markdown("*AI 智能投资顾问 · 稳如磐石，策定乾坤*")
         st.markdown("---")

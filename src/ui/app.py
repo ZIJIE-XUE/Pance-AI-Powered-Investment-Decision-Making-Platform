@@ -1,4 +1,4 @@
-"""AI Robo Advisor - Streamlit Main Application Entry Point.
+"""磐策 PánCè - Streamlit Main Application Entry Point.
 
 Multi-page app with global session state management.
 """
@@ -18,15 +18,15 @@ from src.utils.logging_config import setup_logging
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Robo Advisor - 智能投顾",
-    page_icon="🤖",
+    page_title="磐策 PánCè - AI 智能投顾",
+    page_icon="⛰️",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         "Get Help": None,
         "Report a bug": None,
         "About": (
-            "# AI Robo Advisor\n"
+            "# 磐策 PánCè\n"
             "智能投资顾问系统 v1.0\n\n"
             "AI驱动的资产配置和投资分析平台。\n\n"
             "⚠️ 投资有风险，本系统仅供学习和参考。"
@@ -76,12 +76,12 @@ def main():
     if st.session_state.user is None:
         st.markdown(
             """
-            # 🤖 欢迎使用 AI Robo Advisor
+            # ⛰️ 欢迎使用 磐策 PánCè
 
-            ### 您的 AI 驱动智能投资顾问
+            ### 稳如磐石 · 策定乾坤
 
-            AI Robo Advisor 是一个集成了现代投资组合理论、Monte Carlo 模拟和
-            AI 大语言模型的智能投资顾问系统。
+            磐策是集成了现代投资组合理论、Monte Carlo 模拟和
+            AI 智能分析的智能投资顾问系统。
 
             ### 🚀 快速开始
 
