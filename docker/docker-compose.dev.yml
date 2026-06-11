@@ -1,0 +1,35 @@
+# Development docker-compose override
+# Uses SQLite instead of PostgreSQL, no Redis needed
+# Usage: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+
+version: "3.9"
+
+services:
+  app:
+    build:
+      target: builder  # Use builder stage for dev tools
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./robo_advisor.db
+      - REDIS_URL=
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # Mount source code for hot-reload
+      - ../src:/app/src
+      - ../config:/app/config
+      - ../.env:/app/.env
+    command: >
+      streamlit run src/ui/app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.runOnSave=true
+      --server.headless=true
+      --browser.gatherUsageStats=false
+
+  # In dev, we don't need PostgreSQL or Redis
+  postgres:
+    profiles:
+      - production
+
+  redis:
+    profiles:
+      - production

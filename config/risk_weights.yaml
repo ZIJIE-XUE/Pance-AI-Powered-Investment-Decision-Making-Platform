@@ -1,0 +1,291 @@
+# Risk questionnaire scoring weights and risk level thresholds
+# Scores are normalized to 0.0 - 1.0 range
+
+risk_levels:
+  conservative:
+    min_score: 0.0
+    max_score: 0.30
+    label: "保守型"
+    description: "以资本保值为首要目标，接受极低风险。适合短期投资或无法承受损失的投资者。"
+    equity_range: [0.05, 0.20]
+    bond_range: [0.50, 0.80]
+    gold_range: [0.05, 0.15]
+    cash_range: [0.05, 0.15]
+    optimization_method: "min_volatility"
+
+  moderate:
+    min_score: 0.30
+    max_score: 0.45
+    label: "稳健型"
+    description: "以稳定收益为主，追求适度增长。适合风险承受能力较低的保守投资者。"
+    equity_range: [0.20, 0.40]
+    bond_range: [0.40, 0.65]
+    gold_range: [0.05, 0.15]
+    cash_range: [0.02, 0.10]
+    optimization_method: "min_volatility"
+
+  balanced:
+    min_score: 0.45
+    max_score: 0.60
+    label: "平衡型"
+    description: "在增长和收益之间寻求平衡。适合有一定风险承受能力的中期投资者。"
+    equity_range: [0.40, 0.60]
+    bond_range: [0.25, 0.45]
+    gold_range: [0.05, 0.15]
+    cash_range: [0.01, 0.08]
+    optimization_method: "risk_parity"
+
+  growth:
+    min_score: 0.60
+    max_score: 0.80
+    label: "成长型"
+    description: "追求长期资本增值，愿意接受较高波动。适合长期投资且风险承受能力较强的投资者。"
+    equity_range: [0.60, 0.80]
+    bond_range: [0.10, 0.30]
+    gold_range: [0.02, 0.10]
+    cash_range: [0.00, 0.05]
+    optimization_method: "max_sharpe"
+
+  aggressive:
+    min_score: 0.80
+    max_score: 1.0
+    label: "激进型"
+    description: "最大化长期回报，接受高波动和较大回撤。适合风险承受能力极强的长期投资者。"
+    equity_range: [0.80, 0.98]
+    bond_range: [0.00, 0.15]
+    gold_range: [0.00, 0.10]
+    cash_range: [0.00, 0.05]
+    optimization_method: "max_sharpe"
+
+# Questionnaire definition
+questionnaire:
+  version: "1.0"
+  title: "投资者风险承受能力测评"
+  description: "请回答以下问题，我们将根据您的回答评估您的风险承受能力等级。"
+
+  questions:
+    - id: 1
+      text: "您的年龄范围是？"
+      category: "time_horizon"
+      options:
+        - label: "60岁以上"
+          value: 1
+        - label: "50-60岁"
+          value: 2
+        - label: "40-50岁"
+          value: 3
+        - label: "30-40岁"
+          value: 4
+        - label: "30岁以下"
+          value: 5
+
+    - id: 2
+      text: "您计划的投资期限是？"
+      category: "time_horizon"
+      options:
+        - label: "1年以内"
+          value: 1
+        - label: "1-3年"
+          value: 2
+        - label: "3-5年"
+          value: 3
+        - label: "5-10年"
+          value: 4
+        - label: "10年以上"
+          value: 5
+
+    - id: 3
+      text: "您的年收入水平（人民币）？"
+      category: "financial_situation"
+      options:
+        - label: "10万以下"
+          value: 1
+        - label: "10-30万"
+          value: 2
+        - label: "30-60万"
+          value: 3
+        - label: "60-100万"
+          value: 4
+        - label: "100万以上"
+          value: 5
+
+    - id: 4
+      text: "您的可投资资产占总资产的比例？"
+      category: "financial_situation"
+      options:
+        - label: "10%以下"
+          value: 1
+        - label: "10%-25%"
+          value: 2
+        - label: "25%-50%"
+          value: 3
+        - label: "50%-75%"
+          value: 4
+        - label: "75%以上"
+          value: 5
+
+    - id: 5
+      text: "如果市场下跌20%，您会怎么做？"
+      category: "risk_tolerance"
+      options:
+        - label: "立即卖出所有投资"
+          value: 1
+        - label: "卖出一部分减少损失"
+          value: 2
+        - label: "观望等待市场稳定"
+          value: 3
+        - label: "继续持有不做变动"
+          value: 4
+        - label: "逢低加仓买入更多"
+          value: 5
+
+    - id: 6
+      text: "您能接受的最大年度亏损是多少？"
+      category: "risk_tolerance"
+      options:
+        - label: "不能接受任何亏损"
+          value: 1
+        - label: "5%以内"
+          value: 2
+        - label: "5%-15%"
+          value: 3
+        - label: "15%-25%"
+          value: 4
+        - label: "25%以上"
+          value: 5
+
+    - id: 7
+      text: "您更看重投资的哪个方面？"
+      category: "investment_preference"
+      options:
+        - label: "本金绝对安全"
+          value: 1
+        - label: "稳定现金流入"
+          value: 2
+        - label: "兼顾收益和增长"
+          value: 3
+        - label: "长期资本增值"
+          value: 4
+        - label: "最大化回报"
+          value: 5
+
+    - id: 8
+      text: "您对投资产品的了解程度？"
+      category: "knowledge_experience"
+      options:
+        - label: "完全不了解"
+          value: 1
+        - label: "了解基础产品（存款、理财）"
+          value: 2
+        - label: "了解基金和债券"
+          value: 3
+        - label: "了解股票和ETF"
+          value: 4
+        - label: "专业投资者水平"
+          value: 5
+
+    - id: 9
+      text: "您是否有稳定的应急储备金（3-6个月开支）？"
+      category: "financial_situation"
+      options:
+        - label: "没有"
+          value: 1
+        - label: "有1-2个月"
+          value: 2
+        - label: "有2-3个月"
+          value: 3
+        - label: "有3-6个月"
+          value: 4
+        - label: "超过6个月"
+          value: 5
+
+    - id: 10
+      text: "您期望的年化投资回报率是？"
+      category: "investment_preference"
+      options:
+        - label: "跑赢通胀即可（3%-5%）"
+          value: 1
+        - label: "5%-8%"
+          value: 2
+        - label: "8%-12%"
+          value: 3
+        - label: "12%-15%"
+          value: 4
+        - label: "15%以上"
+          value: 5
+
+    - id: 11
+      text: "当您的投资组合价值波动时，您的感受是？"
+      category: "risk_tolerance"
+      options:
+        - label: "非常焦虑，无法入睡"
+          value: 1
+        - label: "比较担心，经常查看"
+          value: 2
+        - label: "有些紧张但可以接受"
+          value: 3
+        - label: "认为这是正常的市场波动"
+          value: 4
+        - label: "完全不受影响"
+          value: 5
+
+    - id: 12
+      text: "您的投资经验年限？"
+      category: "knowledge_experience"
+      options:
+        - label: "无任何投资经验"
+          value: 1
+        - label: "1年以下"
+          value: 2
+        - label: "1-3年"
+          value: 3
+        - label: "3-7年"
+          value: 4
+        - label: "7年以上"
+          value: 5
+
+# Asset universe for portfolio optimization
+asset_universe:
+  equity:
+    - ticker: "SPY"
+      name: "SPDR S&P 500 ETF"
+      class: "equity"
+    - ticker: "QQQ"
+      name: "Invesco QQQ Trust"
+      class: "equity"
+    - ticker: "VTI"
+      name: "Vanguard Total Stock Market ETF"
+      class: "equity"
+    - ticker: "VXUS"
+      name: "Vanguard Total International Stock ETF"
+      class: "equity"
+    - ticker: "IWM"
+      name: "iShares Russell 2000 ETF"
+      class: "equity"
+
+  bond:
+    - ticker: "AGG"
+      name: "iShares Core US Aggregate Bond ETF"
+      class: "bond"
+    - ticker: "TLT"
+      name: "iShares 20+ Year Treasury Bond ETF"
+      class: "bond"
+    - ticker: "LQD"
+      name: "iShares iBoxx Investment Grade Corporate Bond ETF"
+      class: "bond"
+    - ticker: "TIP"
+      name: "iShares TIPS Bond ETF"
+      class: "bond"
+
+  gold:
+    - ticker: "GLD"
+      name: "SPDR Gold Shares"
+      class: "gold"
+    - ticker: "IAU"
+      name: "iShares Gold Trust"
+      class: "gold"
+
+  real_estate:
+    - ticker: "VNQ"
+      name: "Vanguard Real Estate ETF"
+      class: "real_estate"

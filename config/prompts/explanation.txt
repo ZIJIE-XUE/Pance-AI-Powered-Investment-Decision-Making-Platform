@@ -1,0 +1,38 @@
+请根据以下用户的投资组合和模拟结果，提供专业的投资分析。
+
+## 用户信息
+
+- 风险等级：{{ risk_level_label }}
+- 风险评分：{{ risk_score_pct }}%
+- 投资目标：{{ investment_goal }}
+
+## 投资组合配置
+
+| 代码 | 名称 | 资产类别 | 配置比例 | 预期收益 | 年化波动率 |
+|------|------|---------|---------|---------|----------|
+{%- for a in allocations %}
+| {{ a.ticker }} | {{ a.name }} | {{ a.asset_class }} | {{ a.weight_pct }}% | {{ a.return_pct }}% | {{ a.vol_pct }}% |
+{%- endfor %}
+
+## 组合整体指标
+
+- 预期年化收益率：{{ expected_return_pct }}%
+- 年化波动率：{{ volatility_pct }}%
+- 夏普比率：{{ sharpe_ratio }}
+- 最大回撤：{{ max_drawdown_pct }}%
+
+## Monte Carlo 模拟结果（{{ horizon_years }}年，{{ initial_amount }}初始投资）
+
+- 预期终值（中位数）：¥{{ median_final }}
+- 悲观情景（P5，95%置信度下限）：¥{{ percentile_5 }}
+- 乐观情景（P95，95%置信度上限）：¥{{ percentile_95 }}
+- 95% Value at Risk：¥{{ var_95 }}
+- 实现正收益的概率：{{ probability_positive_pct }}%
+
+## 大类资产配置汇总
+
+{% for cls, weight in class_weights.items() %}
+- {{ cls }}: {{ weight }}%
+{% endfor %}
+
+请根据以上数据提供完整分析，严格按照系统提示中的JSON格式输出。

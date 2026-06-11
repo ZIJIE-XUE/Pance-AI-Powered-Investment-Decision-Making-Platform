@@ -1,0 +1,73 @@
+"""Common sidebar navigation component."""
+
+import streamlit as st
+
+
+def render_sidebar():
+    """Render the common sidebar with navigation and progress."""
+    with st.sidebar:
+        st.image(
+            "https://img.icons8.com/fluency/96/advisor.png",
+            width=80,
+        )
+        st.title("🤖 AI Robo Advisor")
+        st.markdown("*智能投资顾问系统*")
+        st.markdown("---")
+
+        # User info
+        if st.session_state.get("user"):
+            user = st.session_state.user
+            st.markdown(f"👤 **{user.get('display_name', '投资者')}**")
+            st.caption(f"📧 {user.get('email', '')}")
+        else:
+            st.info("👈 请先填写基本信息")
+
+        st.markdown("---")
+
+        # Progress tracker
+        st.markdown("### 📊 进度追踪")
+
+        steps = [
+            ("01_home.py", "📝 基本信息"),
+            ("02_risk_assessment.py", "🎯 风险测评"),
+            ("03_portfolio.py", "📊 组合配置"),
+            ("04_simulation.py", "🔮 蒙特卡洛"),
+            ("05_ai_advisor.py", "🤖 AI 分析"),
+            ("06_report.py", "📄 报告下载"),
+        ]
+
+        session_keys = [
+            "user",
+            "risk_profile",
+            "portfolio",
+            "simulation",
+            "advisor_response",
+            "report_metadata",
+        ]
+
+        for i, (page, label) in enumerate(steps):
+            completed = st.session_state.get(session_keys[i]) is not None
+            icon = "✅" if completed else "⏳"
+            st.markdown(f"{icon} {label}")
+
+        st.markdown("---")
+
+        # Help
+        with st.expander("ℹ️ 使用说明"):
+            st.markdown(
+                """
+                1. 填写基本信息
+                2. 完成风险测评问卷
+                3. 生成投资组合配置
+                4. 运行 Monte Carlo 模拟
+                5. 获取 AI 分析建议
+                6. 下载 PDF 报告
+
+                **提示：** 所有数据在会话期间保存，
+                刷新页面后需要重新开始。
+                """
+            )
+
+        st.markdown("---")
+        st.caption("© 2026 AI Robo Advisor")
+        st.caption("投资有风险，入市需谨慎")

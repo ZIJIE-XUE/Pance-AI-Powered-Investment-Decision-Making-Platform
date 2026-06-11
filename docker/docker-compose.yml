@@ -1,0 +1,73 @@
+# Production docker-compose configuration
+# AI Robo Advisor with PostgreSQL, Redis, and Streamlit
+
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: robo-advisor-app
+    ports:
+      - "8501:8501"
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://robo_advisor:${POSTGRES_PASSWORD:-changeme}@postgres:5432/robo_advisor
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ../reports_output:/app/reports_output
+      - ../cache_data:/app/cache_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - robo-advisor-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: robo-advisor-postgres
+    environment:
+      POSTGRES_DB: robo_advisor
+      POSTGRES_USER: robo_advisor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U robo_advisor -d robo_advisor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - robo-advisor-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: robo-advisor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - robo-advisor-net
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  robo-advisor-net:
+    driver: bridge
