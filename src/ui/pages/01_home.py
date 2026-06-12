@@ -10,6 +10,7 @@ import streamlit as st
 
 from src.db.database import async_session_factory
 from src.db.models import User
+from src.ui.components.sidebar import render_sidebar
 from src.utils.validators import (
     validate_age,
     validate_income,
@@ -69,7 +70,8 @@ async def _create_or_get_user(user_data: dict) -> User:
 
 def show():
     """Display the home page with user info form."""
-    st.title("🏠 AI Robo Advisor")
+    render_sidebar()
+    st.title("🏠 基本信息")
     st.markdown("### 智能投资顾问 - 个人信息")
 
     # Database is initialized by app.py on startup — no need to re-init here

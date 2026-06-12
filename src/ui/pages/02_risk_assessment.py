@@ -11,6 +11,7 @@ from src.engine.risk_engine import load_questionnaire
 from src.services.risk_service import RiskAssessmentService
 from src.ui.components.questionnaire import render_questionnaire, render_risk_result
 from src.db.database import async_session_factory
+from src.ui.components.sidebar import render_sidebar
 
 
 def _load_questionnaire_sync():
@@ -38,6 +39,7 @@ async def _submit_assessment(user_id, answers):
 
 def show():
     """Display the risk assessment page."""
+    render_sidebar()
     st.title("🎯 风险承受能力测评")
 
     # Check if user profile exists in session state

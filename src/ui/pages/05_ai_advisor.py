@@ -9,6 +9,7 @@ import asyncio
 import streamlit as st
 
 from src.services.advisor_service import AdvisorService
+from src.ui.components.sidebar import render_sidebar
 
 
 async def _get_advisor_response(user, risk_profile, portfolio, simulation):
@@ -24,6 +25,7 @@ async def _get_advisor_response(user, risk_profile, portfolio, simulation):
 
 def show():
     """Display the AI Advisor page."""
+    render_sidebar()
     st.title("🤖 AI 投资顾问分析")
 
     # Check prerequisites

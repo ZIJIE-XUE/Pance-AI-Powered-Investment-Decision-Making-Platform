@@ -7,16 +7,16 @@ from pathlib import Path
 # ── Page definitions ───────────────────────────────────────────────────────
 
 WORKFLOW_STEPS = [
-    ("01_home",               "🏠 基本信息",     "user"),
-    ("02_risk_assessment",    "🎯 风险测评",     "risk_profile"),
-    ("03_portfolio",          "📊 投资组合",     "portfolio"),
-    ("04_simulation",         "🔮 蒙特卡洛",     "simulation"),
-    ("05_ai_advisor",         "🤖 AI 分析",      "advisor_response"),
-    ("06_report",             "📄 报告下载",     "report_metadata"),
+    ("01_🏠_基本信息",     "🏠 基本信息",     "user"),
+    ("02_🎯_风险测评",     "🎯 风险测评",     "risk_profile"),
+    ("03_📊_投资组合",     "📊 投资组合",     "portfolio"),
+    ("04_🔮_蒙特卡洛",     "🔮 蒙特卡洛",     "simulation"),
+    ("05_🤖_AI分析",       "🤖 AI 分析",      "advisor_response"),
+    ("06_📄_报告下载",     "📄 报告下载",     "report_metadata"),
 ]
 
 TOOLS = [
-    ("07_dca_calculator",     "💰 定投计算器"),
+    ("07_💰_定投计算器",   "💰 定投计算器"),
 ]
 
 
@@ -30,20 +30,10 @@ def _latest_page():
 
 def render_sidebar():
     """Render the common sidebar with navigation and progress."""
-    # Hide Streamlit's default page nav — injected here so it runs on every page
-    st.markdown("""
-        <style>
-            [data-testid="stSidebarNav"] { display: none; }
-            [data-testid="stSidebarNavItems"] { display: none; }
-        </style>
-    """, unsafe_allow_html=True)
-
     with st.sidebar:
         # ── Logo & Brand ───────────────────────────────────────────────────
         logo_path = Path(__file__).parent.parent.parent.parent / "assets" / "磐策logo.jpg"
-        _, col_logo, _ = st.columns([0.05, 0.9, 0.05])
-        with col_logo:
-            st.image(str(logo_path), use_container_width=True)
+        st.image(str(logo_path), width=100)
 
         st.markdown(
             "<h2 style='margin-bottom:0'>磐策 <span style='font-size:0.6em;color:#888'>PánCè</span></h2>"
@@ -57,15 +47,14 @@ def render_sidebar():
             name = user.get("display_name") or "投资者"
             email = user.get("email", "")
             markets = user.get("preferred_markets", "")
-            markets_html = f"<br><small style='color:#888'>🌍 {markets}</small>" if markets else ""
-            html = (
+            st.markdown(
                 f"<div style='padding:8px 12px;border-radius:8px;background:#f0f4ff;margin:8px 0'>"
                 f"<strong>👤 {name}</strong><br>"
                 f"<small style='color:#888'>📧 {email}</small>"
-                f"{markets_html}"
-                f"</div>"
+                f"{'<br><small style=\\'color:#888\\'>🌍 ' + markets + '</small>' if markets else ''}"
+                f"</div>",
+                unsafe_allow_html=True,
             )
-            st.markdown(html, unsafe_allow_html=True)
         else:
             st.info("👈 请先填写基本信息")
 

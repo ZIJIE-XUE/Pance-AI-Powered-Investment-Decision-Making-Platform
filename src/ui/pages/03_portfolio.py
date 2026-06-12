@@ -12,6 +12,7 @@ import streamlit as st
 from src.services.portfolio_service import PortfolioOptimizationService
 from src.models.portfolio import PortfolioOptimizationRequest
 from src.db.database import async_session_factory
+from src.ui.components.sidebar import render_sidebar
 
 
 async def _optimize_portfolio(user_id, risk_profile_id, risk_level, preferred_markets=None):
@@ -37,6 +38,7 @@ async def _optimize_portfolio(user_id, risk_profile_id, risk_level, preferred_ma
 
 def show():
     """Display the portfolio optimization page."""
+    render_sidebar()
     st.title("📊 投资组合配置")
 
     # Check prerequisites

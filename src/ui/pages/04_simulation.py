@@ -13,6 +13,7 @@ import streamlit as st
 from src.services.simulation_service import MonteCarloService
 from src.models.simulation import MonteCarloRequest
 from src.db.database import async_session_factory
+from src.ui.components.sidebar import render_sidebar
 
 
 async def _run_simulation(user_id, portfolio_id, initial_amount, horizon_years, num_paths):
@@ -39,6 +40,7 @@ async def _run_simulation(user_id, portfolio_id, initial_amount, horizon_years, 
 
 def show():
     """Display the Monte Carlo simulation page."""
+    render_sidebar()
     st.title("🔮 Monte Carlo 模拟")
 
     # Check prerequisites

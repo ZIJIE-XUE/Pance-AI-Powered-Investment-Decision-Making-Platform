@@ -9,6 +9,7 @@ import os
 import streamlit as st
 
 from src.services.report_service import ReportService
+from src.ui.components.sidebar import render_sidebar
 from src.db.database import async_session_factory
 
 
@@ -35,6 +36,7 @@ async def _generate_report(user_info, risk_profile, portfolio, simulation, advis
 
 def show():
     """Display the report generation and download page."""
+    render_sidebar()
     st.title("📄 投资报告下载")
 
     # Check prerequisites

@@ -9,10 +9,12 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.engine.dca_calculator import calculate_dca_forward, calculate_dca_reverse
+from src.ui.components.sidebar import render_sidebar
 
 
 def show():
     """Display the DCA calculator page."""
+    render_sidebar()
     st.title("💰 定投计算器")
     st.markdown("计算每月定额投资的未来收益，或反推达成目标所需的每月投入。")
 
