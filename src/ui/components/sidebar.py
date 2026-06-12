@@ -15,6 +15,10 @@ WORKFLOW_STEPS = [
     ("06_report",             "📄 报告下载",     "report_metadata"),
 ]
 
+DASHBOARD = [
+    ("08_market_dashboard",   "📊 市场仪表盘"),
+]
+
 TOOLS = [
     ("07_dca_calculator",     "💰 定投计算器"),
 ]
@@ -95,7 +99,19 @@ def render_sidebar():
 
         st.markdown("---")
 
-        # ── Module 2: Tools ────────────────────────────────────────────────
+        # ── Module 2: Market Dashboard ─────────────────────────────────────
+        st.markdown("#### 📊 市场仪表盘")
+
+        for page_file, label in DASHBOARD:
+            st.page_link(
+                f"pages/{page_file}.py",
+                label=label,
+                use_container_width=True,
+            )
+
+        st.markdown("---")
+
+        # ── Module 3: Tools ────────────────────────────────────────────────
         st.markdown("#### 🛠️ 独立工具")
 
         for page_file, label in TOOLS:
@@ -118,6 +134,13 @@ def render_sidebar():
                 4. 运行Monte Carlo收益模拟
                 5. 获取AI投资分析建议
                 6. 下载PDF专业投资报告
+
+                **📊 市场仪表盘**
+                - 实时查看各大指数行情和走势图
+                - 行业板块涨跌热力图
+                - 宏观指标（黄金、原油、国债收益率、汇率、VIX）
+                - ETF涨跌排行
+                - 数据每5分钟缓存，点击刷新按钮获取最新
 
                 **🛠️ 独立工具**
                 - 定投计算器：随时可用，无需前置步骤
