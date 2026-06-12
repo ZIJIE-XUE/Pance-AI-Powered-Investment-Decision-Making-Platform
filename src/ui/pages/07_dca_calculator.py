@@ -28,8 +28,8 @@ def show():
                           help="计划持续定投的年数")
     with col2:
         annual_return = st.slider(
-            "预期年化收益率", min_value=0.0, max_value=20.0, value=7.0, step=0.5,
-            help="预期的年均投资回报率（参考：沪深300长期约8-10%，债券约3-5%）",
+            "预期年化收益率", min_value=0.0, max_value=50.0, value=7.0, step=0.5,
+            help="预期的年均投资回报率（参考：沪深300长期约8-10%，债券约3-5%，上限50%用于极端情景测试）",
         ) / 100
     with col3:
         mode = st.radio(
@@ -202,8 +202,8 @@ def _display_table(result: dict):
             "累计投入": f"¥{d['cumulative_principal']:,.0f}",
             "累计收益": f"¥{d['year_earnings']:,.0f}",
             "总资产": f"¥{d['cumulative_value']:,.0f}",
-            "收益占比": f"{d['year_earnings'] / d['cumulative_value'] * 100:.1f}%"
-            if d['cumulative_value'] > 0 else "0%",
+            "收益占比": round(d['year_earnings'] / d['cumulative_value'] * 100, 1)
+            if d['cumulative_value'] > 0 else 0.0,
         })
 
     st.dataframe(

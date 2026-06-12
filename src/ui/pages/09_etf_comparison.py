@@ -64,6 +64,7 @@ def _build_selector_options(assets: list[dict]) -> dict[str, list[tuple[str, str
     }
     class_labels = {
         "equity": "股票", "bond": "债券", "gold": "黄金", "real_estate": "地产",
+        "sector": "行业板块",
     }
 
     groups: dict[str, list[tuple[str, str, dict]]] = {}
