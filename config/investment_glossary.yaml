@@ -1,0 +1,880 @@
+# 磐策 PánCè — 投资术语百科
+# Chinese-English bilingual investment glossary for retail investors.
+
+categories:
+  - key: basic
+    name: 基础概念
+    icon: "📖"
+  - key: stock
+    name: 股票市场
+    icon: "📈"
+  - key: fund
+    name: 基金与ETF
+    icon: "💰"
+  - key: bond
+    name: 债券与固收
+    icon: "📊"
+  - key: risk
+    name: 风险管理
+    icon: "🛡️"
+  - key: finance
+    name: 财务指标
+    icon: "🔢"
+  - key: macro
+    name: 宏观经济
+    icon: "🌍"
+  - key: strategy
+    name: 投资策略
+    icon: "🎯"
+
+terms:
+  # ═══ 基础概念 ═══
+  - id: asset_allocation
+    name_zh: 资产配置
+    name_en: Asset Allocation
+    category: basic
+    difficulty: beginner
+    definition: >
+      将投资资金分配到不同资产类别（如股票、债券、黄金、现金等）的策略。
+      合理的资产配置可以根据投资者的风险承受能力和投资目标，在控制风险的同时追求稳健回报。
+      研究表明，资产配置决定了投资组合约90%的长期收益波动。
+    related: [diversification, risk_tolerance, portfolio]
+
+  - id: compound_interest
+    name_zh: 复利
+    name_en: Compound Interest
+    category: basic
+    difficulty: beginner
+    definition: >
+      俗称"利滚利"，指投资收益再投资后产生额外收益的过程。
+      例如：本金10,000元，年化收益7%，10年后不是17,000元（单利），
+      而是约19,672元（复利）。时间越长，复利效果越显著——这是长期投资的核心逻辑。
+    related: [dca, annualized_return]
+
+  - id: liquidity
+    name_zh: 流动性
+    name_en: Liquidity
+    category: basic
+    difficulty: beginner
+    definition: >
+      资产在不影响其价格的情况下快速转换为现金的能力。
+      现金流动性最高，房产流动性较低。ETF通常比场外基金流动性更好，
+      因为可以在交易时段随时买卖。投资时需注意保留足够的流动性应对紧急需求。
+    related: [etf, money_market]
+
+  - id: inflation
+    name_zh: 通货膨胀
+    name_en: Inflation
+    category: basic
+    difficulty: beginner
+    definition: >
+      物价水平持续上涨、货币购买力下降的经济现象。
+      例如：年通胀率3%意味着100元的购买力一年后只相当于约97元。
+      投资的重要目标之一就是跑赢通胀，否则财富实际上在缩水。通常用CPI衡量。
+    related: [cpi, real_return]
+
+  - id: risk_tolerance
+    name_zh: 风险承受能力
+    name_en: Risk Tolerance
+    category: basic
+    difficulty: beginner
+    definition: >
+      投资者在面对投资损失时的心理和财务承受能力。受年龄、收入、
+      资产规模、投资经验等因素影响。年轻人通常风险承受能力较高（有时间弥补亏损），
+      临近退休的投资者则更倾向保守。磐策的风险测评问卷就是为此设计。
+    related: [asset_allocation, risk_profile]
+
+  - id: real_return
+    name_zh: 实际收益
+    name_en: Real Return
+    category: basic
+    difficulty: intermediate
+    definition: >
+      扣除通货膨胀后的投资收益率。公式：实际收益 ≈ 名义收益 − 通胀率。
+      例如：名义收益8%，通胀率3%，实际收益约5%。关注实际收益而非名义收益，
+      才能真实衡量财富增长。
+    related: [inflation, nominal_return]
+
+  - id: nominal_return
+    name_zh: 名义收益
+    name_en: Nominal Return
+    category: basic
+    difficulty: intermediate
+    definition: >
+      未经通胀调整的投资收益率，即账户上直接显示的数字。
+      例如：年初投入100元，年末变成108元，名义收益率为8%。
+      但若当年通胀率为3%，实际收益仅约5%。
+    related: [real_return, inflation]
+
+  - id: bid_ask_spread
+    name_zh: 买卖价差
+    name_en: Bid-Ask Spread
+    category: basic
+    difficulty: intermediate
+    definition: >
+      买入价（Ask）和卖出价（Bid）之间的差额。价差越小，流动性越好。
+      宽基ETF通常价差很小（如0.01%），而一些冷门ETF或个股价差可能较大，
+      这意味着交易成本更高。选择流动性好的标的可以降低交易成本。
+    related: [liquidity, etf]
+
+  - id: bull_bear
+    name_zh: 牛市与熊市
+    name_en: Bull Market & Bear Market
+    category: basic
+    difficulty: beginner
+    definition: >
+      牛市（Bull Market）指市场价格持续上涨的行情，通常伴随投资者乐观情绪；
+      熊市（Bear Market）指价格持续下跌，通常从高点回落超过20%即为熊市。
+      A股和港股习惯用红涨绿跌（与西方相反），牛熊交替是市场的自然规律。
+    related: [correction, volatility]
+
+  - id: correction
+    name_zh: 回调
+    name_en: Correction
+    category: basic
+    difficulty: intermediate
+    definition: >
+      资产价格从近期高点下跌10%至20%的行情，属于正常的市场调整。
+      回调不等于熊市——回调通常是短期（几周到几个月），
+      而熊市跌幅更深（超过20%）且持续时间更长。经验丰富的投资者常将回调视为买入机会。
+    related: [bull_bear, drawdown]
+
+  # ═══ 股票市场 ═══
+  - id: pe_ratio
+    name_zh: 市盈率
+    name_en: Price-to-Earnings Ratio (P/E)
+    category: stock
+    difficulty: beginner
+    definition: >
+      市盈率 = 股价 ÷ 每股收益，是衡量股票估值最常用的指标。
+      高PE可能意味着高增长预期（或估值过高），低PE可能意味着被低估（或增长乏力）。
+      不同行业PE水平差异很大：科技股PE通常较高，银行股PE较低。
+      建议在同行业内比较PE，或对比该股票自身历史PE水平。
+    related: [eps, pb_ratio, roe]
+
+  - id: pb_ratio
+    name_zh: 市净率
+    name_en: Price-to-Book Ratio (P/B)
+    category: stock
+    difficulty: beginner
+    definition: >
+      市净率 = 股价 ÷ 每股净资产。主要用于评估银行、保险、地产等重资产行业。
+      PB < 1 意味着股价低于公司净资产（"破净"），可能被低估。
+      但对轻资产公司（如互联网），PB的参考价值有限。
+    related: [pe_ratio, nav]
+
+  - id: eps
+    name_zh: 每股收益
+    name_en: Earnings Per Share (EPS)
+    category: stock
+    difficulty: beginner
+    definition: >
+      公司净利润除以流通股总数，反映每股股票对应的盈利能力。
+      EPS增长是股价上涨的核心驱动因素。关注EPS时需注意：
+      一次性收益会虚增EPS，扣非净利润更可靠。
+    related: [pe_ratio, roe]
+
+  - id: market_cap
+    name_zh: 市值
+    name_en: Market Capitalization
+    category: stock
+    difficulty: beginner
+    definition: >
+      公司总市值 = 股价 × 流通股数量。A股通常将市值分为：
+      大盘股（>500亿）、中盘股（100-500亿）、小盘股（<100亿）。
+      大盘股通常更稳定但增长较慢，小盘股波动大但增长潜力更高。
+    related: [ipo, index]
+
+  - id: dividend_yield
+    name_zh: 股息率
+    name_en: Dividend Yield
+    category: stock
+    difficulty: beginner
+    definition: >
+      股息率 = 每股年度分红 ÷ 当前股价。反映股票通过分红给投资者带来的现金回报。
+      高股息策略适合追求稳定现金流的投资者。A股中银行、公用事业板块股息率通常较高。
+      注意：高股息率也可能因为股价大跌造成，需结合基本面分析。
+    related: [eps, pe_ratio]
+
+  - id: index
+    name_zh: 指数
+    name_en: Index
+    category: stock
+    difficulty: beginner
+    definition: >
+      由一篮子股票按特定规则编制的统计指标，用于反映市场或板块的整体走势。
+      例如沪深300追踪A股最大的300只股票，标普500追踪美股500家龙头公司。
+      指数本身不能直接买卖，但可以通过ETF或指数基金间接投资。
+    related: [etf, market_cap]
+
+  - id: ipo
+    name_zh: 首次公开募股
+    name_en: Initial Public Offering (IPO)
+    category: stock
+    difficulty: beginner
+    definition: >
+      公司首次向公众发行股票的过程。IPO后公司从"私人公司"变为"上市公司"，
+      股票在交易所挂牌交易。A股IPO有"打新"传统（参与新股申购），
+      中签后上市首日通常有溢价，但并非所有新股都能持续上涨。
+    related: [market_cap, a_share]
+
+  - id: a_share
+    name_zh: A股
+    name_en: A-Share
+    category: stock
+    difficulty: beginner
+    definition: >
+      在中国内地注册、以人民币计价、在上海或深圳证券交易所上市的股票。
+      过去主要面向内地投资者，现在境外投资者可通过沪港通/深港通参与。
+      与H股（香港上市）和美股中概股形成对比。
+    related: [ipo, index, circuit_breaker]
+
+  - id: circuit_breaker
+    name_zh: 熔断机制
+    name_en: Circuit Breaker
+    category: stock
+    difficulty: intermediate
+    definition: >
+      当市场指数波动达到规定幅度时，交易所暂停交易的机制，旨在防止恐慌性抛售。
+      美股熔断阈值分为7%、13%、20%三档。A股曾在2016年短暂实施熔断后暂停。
+      熔断期间投资者应保持冷静，避免情绪化决策。
+    related: [volatility, bull_bear]
+
+  - id: adr
+    name_zh: 美国存托凭证
+    name_en: American Depositary Receipt (ADR)
+    category: stock
+    difficulty: intermediate
+    definition: >
+      外国公司在美国上市的凭证，由美国存托银行发行。中概股多以ADR形式在美股交易
+      （如阿里巴巴BABA、拼多多PDD）。ADR价格受汇率和两地市场情绪影响，
+      可能与原股存在价差。
+    related: [a_share, exchange_rate]
+
+  # ═══ 基金与ETF ═══
+  - id: etf
+    name_zh: 交易型开放式指数基金
+    name_en: Exchange-Traded Fund (ETF)
+    category: fund
+    difficulty: beginner
+    definition: >
+      在交易所上市交易的指数基金，兼具股票（盘中随时买卖）和基金（分散投资）的优点。
+      ETF费用通常远低于主动管理基金，管理费一般在0.15%-0.6%之间。
+      磐策推荐的投资组合以ETF为核心配置工具。宽基ETF（如沪深300ETF）
+      适合长期定投。
+    related: [index, expense_ratio, tracking_error]
+
+  - id: nav
+    name_zh: 基金净值
+    name_en: Net Asset Value (NAV)
+    category: fund
+    difficulty: beginner
+    definition: >
+      每份基金对应的资产价值 =（基金总资产 − 总负债）÷ 总份额。
+      开放式基金每日公布一个净值，ETF则同时有净值和市价（可能略有偏差）。
+      基金净值的变化直接反映投资盈亏。
+    related: [etf, expense_ratio]
+
+  - id: expense_ratio
+    name_zh: 管理费率
+    name_en: Expense Ratio
+    category: fund
+    difficulty: beginner
+    definition: >
+      基金公司每年从基金资产中收取的管理费用比例。例如：费率0.5%意味着
+      每10,000元投资每年扣50元费用。费用虽小，长期复利效果显著——
+      0.5%与1.5%的费率差异，20年后可能导致收益相差10%以上。选择低费率ETF是明智之举。
+    related: [etf, tracking_error]
+
+  - id: tracking_error
+    name_zh: 跟踪误差
+    name_en: Tracking Error
+    category: fund
+    difficulty: intermediate
+    definition: >
+      ETF实际收益与所追踪指数收益之间的偏差。跟踪误差越小，ETF越精准地复制指数。
+      误差来源包括管理费、交易成本、抽样复制方式等。选择跟踪误差 < 1%/年的ETF。
+    related: [etf, expense_ratio]
+
+  - id: dividend_fund
+    name_zh: 基金分红
+    name_en: Fund Dividend
+    category: fund
+    difficulty: beginner
+    definition: >
+      基金将部分收益以现金或份额形式返还给投资者。有两种方式：
+      现金分红（直接到账）和红利再投资（自动买入更多份额）。
+      长期投资者选择"红利再投资"可以发挥复利效应。
+      注意：分红后基金净值会相应下降，并非额外收益。
+    related: [dividend_yield, compound_interest]
+
+  - id: open_vs_etf
+    name_zh: 场外基金 vs 场内ETF
+    name_en: OTC Fund vs Exchange-Traded Fund
+    category: fund
+    difficulty: beginner
+    definition: >
+      场外基金通过基金公司或代销平台（如支付宝、天天基金）申购赎回，
+      按日终净值成交，通常T+1确认。场内ETF在交易所买卖，盘中实时成交，
+      流动性更好。定投通常使用场外基金（可设自动扣款），
+      而主动交易更适合场内ETF。
+    related: [etf, nav, liquidity]
+
+  - id: index_fund
+    name_zh: 指数基金
+    name_en: Index Fund
+    category: fund
+    difficulty: beginner
+    definition: >
+      以跟踪特定指数为目标，通过复制指数成分股来实现与指数相近收益的基金。
+      包括ETF（交易所交易）和场外指数基金。巴菲特多次推荐普通投资者定投
+      低费率的标普500指数基金，认为长期来看能战胜大多数主动基金经理。
+    related: [etf, index, expense_ratio]
+
+  - id: qdii
+    name_zh: QDII基金
+    name_en: Qualified Domestic Institutional Investor Fund
+    category: fund
+    difficulty: intermediate
+    definition: >
+      合格境内机构投资者基金，允许境内资金投资境外市场。
+      通过QDII基金，内地投资者可以便捷地投资美股、港股、欧洲等市场，
+      无需自行开设境外账户。注意QDII有额度限制，极端行情可能出现暂停申购。
+    related: [etf, exchange_rate]
+
+  - id: rebalance
+    name_zh: 再平衡
+    name_en: Rebalancing
+    category: fund
+    difficulty: intermediate
+    definition: >
+      定期调整投资组合中各资产的比例，使其回到目标配置。
+      例如：目标股债比60/40，一年后股票涨得多变成70/30，
+      再平衡就是卖出部分股票买入债券以恢复60/40。再平衡是纪律性"低买高卖"，
+      长期能控制风险并可能增厚收益。
+    related: [asset_allocation, dca]
+
+  - id: smart_beta
+    name_zh: 聪明贝塔
+    name_en: Smart Beta
+    category: fund
+    difficulty: advanced
+    definition: >
+      介于主动管理和被动指数之间的一种策略型ETF。不完全按市值加权，
+      而是按特定因子（如低波动、高股息、价值、动量等）筛选和加权。
+      例如：红利ETF按股息率加权，低波ETF按波动率加权。
+      目标是在保持被动投资低成本优势的同时获取超额收益。
+    related: [etf, index_fund]
+
+  # ═══ 债券与固收 ═══
+  - id: bond_basics
+    name_zh: 债券基础
+    name_en: Bond Basics
+    category: bond
+    difficulty: beginner
+    definition: >
+      债券是政府或公司向投资者借款的凭证，约定到期还本付息。
+      国债（政府发行）风险最低，企业债风险较高但收益也更高。
+      债券在投资组合中主要起"稳定器"作用——股市大跌时债券通常表现稳健。
+    related: [yield, duration, credit_rating]
+
+  - id: yield
+    name_zh: 收益率
+    name_en: Yield
+    category: bond
+    difficulty: beginner
+    definition: >
+      债券投资的年化回报率。票面利率是发行时约定的利率，
+      但市场价格变化会导致实际收益率偏离票面利率。
+      债券价格和收益率呈反向关系：价格涨 → 收益率跌，价格跌 → 收益率涨。
+    related: [bond_basics, duration, interest_rate]
+
+  - id: duration
+    name_zh: 久期
+    name_en: Duration
+    category: bond
+    difficulty: intermediate
+    definition: >
+      衡量债券价格对利率变化敏感度的指标。久期越大，利率每变动1%，
+      债券价格波动越大。例如：久期5年的债券，利率上升1%，价格约下跌5%。
+      长期债券久期更大，风险也更高。普通投资者可通过债券ETF间接管理久期风险。
+    related: [yield, interest_rate, bond_basics]
+
+  - id: credit_rating
+    name_zh: 信用评级
+    name_en: Credit Rating
+    category: bond
+    difficulty: intermediate
+    definition: >
+      评级机构（如标普、穆迪、惠誉）对债券发行人违约风险的评估。
+      投资级（BBB−/Baa3及以上）风险较低，高收益级（BB+/Ba1及以下，俗称"垃圾债"）
+      收益较高但违约风险也大。国债通常享有最高评级（AAA/Aaa）。
+    related: [bond_basics, yield]
+
+  - id: treasury_bond
+    name_zh: 国债
+    name_en: Treasury Bond / Sovereign Bond
+    category: bond
+    difficulty: beginner
+    definition: >
+      由国家政府发行的债券，被视为"无风险资产"（假设国家不违约）。
+      中国国债和美国国债是全球最重要的两类主权债。
+      10年期国债收益率常被作为资产定价的基准（无风险利率）。
+    related: [bond_basics, interest_rate, yield]
+
+  - id: convertible_bond
+    name_zh: 可转债
+    name_en: Convertible Bond
+    category: bond
+    difficulty: intermediate
+    definition: >
+      在一定条件下可转换为发行公司股票的债券，兼具债券的保本性和股票的上涨潜力。
+      A股可转债市场非常活跃。价格低于100元面值的可转债具有较强债性保护，
+      高于130元则股性更强。打新可转债是A股投资者偏好的低风险策略。
+    related: [bond_basics, stock]
+
+  - id: bond_etf
+    name_zh: 债券ETF
+    name_en: Bond ETF
+    category: bond
+    difficulty: beginner
+    definition: >
+      在交易所交易的债券指数基金，一键投资一篮子债券。
+      常见类型：国债ETF（安全）、信用债ETF（收益较高）、可转债ETF（波动更大）。
+      相比直接买债券，债券ETF门槛低、流动性好、透明度高。
+    related: [etf, bond_basics, duration]
+
+  - id: money_market
+    name_zh: 货币基金
+    name_en: Money Market Fund
+    category: bond
+    difficulty: beginner
+    definition: >
+      投资于短期（1年内）高信用等级债券的基金，风险极低、流动性极好。
+      余额宝、零钱通背后的底层资产就是货币基金。收益通常略高于银行活期存款，
+      适合存放短期闲置资金或作为紧急备用金。
+    related: [liquidity, bond_basics]
+
+  # ═══ 风险管理 ═══
+  - id: volatility
+    name_zh: 波动率
+    name_en: Volatility
+    category: risk
+    difficulty: beginner
+    definition: >
+      衡量资产价格波动剧烈程度的指标，通常用标准差表示。
+      波动率越高，价格上下幅度越大，风险也越高。例如：
+      股票年化波动率约15-25%，债券约3-8%。波动率不等于风险，
+      但对短期投资者来说，高波动可能意味着更大的浮亏考验。
+    related: [sharpe_ratio, drawdown, var]
+
+  - id: sharpe_ratio
+    name_zh: 夏普比率
+    name_en: Sharpe Ratio
+    category: risk
+    difficulty: intermediate
+    definition: >
+      衡量每承担一单位风险获得多少超额回报的指标。
+      公式：夏普比率 =（投资收益率 − 无风险利率）÷ 波动率。
+      夏普比率 > 1 被认为是良好的风险调整后收益。比较不同基金或策略时，
+      夏普比率比单纯看收益率更有意义。
+    related: [volatility, max_drawdown, sortino_ratio]
+
+  - id: max_drawdown
+    name_zh: 最大回撤
+    name_en: Maximum Drawdown (MDD)
+    category: risk
+    difficulty: beginner
+    definition: >
+      在选定周期内，投资组合从最高点到最低点的最大跌幅。
+      例如：10万元最高涨到15万，后来最低跌到12万，回撤 = (15−12)÷15 = 20%。
+      最大回撤衡量最坏情况下可能面临的亏损，是评估策略风险的重要指标。
+      磐策的Monte Carlo模拟会展示不同路径的回撤分布。
+    related: [volatility, drawdown, recovery]
+
+  - id: var
+    name_zh: 风险价值
+    name_en: Value at Risk (VaR)
+    category: risk
+    difficulty: advanced
+    definition: >
+      在给定置信度下，投资组合在特定时间内可能遭受的最大损失。
+      例如：95%日VaR为2%意味着，有95%的把握任何单日损失不超过2%。
+      VaR是机构常用的风险度量，但也因无法捕捉尾部风险（极端事件）而受批评。
+    related: [volatility, stress_test]
+
+  - id: sortino_ratio
+    name_zh: 索提诺比率
+    name_en: Sortino Ratio
+    category: risk
+    difficulty: advanced
+    definition: >
+      夏普比率的改良版，只惩罚下行波动（亏损方向的波动），不惩罚上行波动（盈利方向）。
+      对于收益分布不对称的投资策略（如实值期权策略），索提诺比率比夏普比率更合理。
+    related: [sharpe_ratio, volatility]
+
+  - id: stress_test
+    name_zh: 压力测试
+    name_en: Stress Test
+    category: risk
+    difficulty: advanced
+    definition: >
+      模拟极端市场情景（如2008年金融危机、2015年A股股灾、2020年疫情暴跌）
+      下投资组合的表现。帮助投资者了解最坏情况下的可能损失，
+      从而评估自己是否能承受。磐策的Monte Carlo模拟包含了极端情景分析。
+    related: [var, max_drawdown, monte_carlo]
+
+  - id: monte_carlo
+    name_zh: 蒙特卡洛模拟
+    name_en: Monte Carlo Simulation
+    category: risk
+    difficulty: intermediate
+    definition: >
+      通过大量随机抽样模拟未来可能结果的统计方法。在投资中，
+      会生成数千至数万条可能的收益路径，展示不同概率下的收益范围
+      （如5%最坏情况 vs 95%最好情况）。磐策使用10,000条路径进行模拟，
+      给出未来5/10/20年的收益预测区间。
+    related: [stress_test, var, drawdown]
+
+  - id: recovery
+    name_zh: 回本时间
+    name_en: Recovery Time
+    category: risk
+    difficulty: intermediate
+    definition: >
+      投资组合从最大回撤的最低点恢复到前高所需的时间。
+      例如：2008年金融危机后，标普500用了约4.5年回到前高。
+      了解历史回本时间有助于在市场大跌时保持耐心，避免在底部割肉。
+    related: [max_drawdown, drawdown]
+
+  - id: risk_parity
+    name_zh: 风险平价
+    name_en: Risk Parity
+    category: risk
+    difficulty: advanced
+    definition: >
+      一种资产配置方法，通过调整各资产权重使它们对组合总风险贡献相等，
+      而非按金额均等分配。股票风险高就少配，债券风险低就多配（甚至加杠杆）。
+      桥水基金的全天候策略（All Weather）是风险平价的著名实践。
+    related: [asset_allocation, diversification, volatility]
+
+  # ═══ 财务指标 ═══
+  - id: roe
+    name_zh: 净资产收益率
+    name_en: Return on Equity (ROE)
+    category: finance
+    difficulty: intermediate
+    definition: >
+      ROE = 净利润 ÷ 净资产，衡量公司利用股东资金创造利润的效率。
+      ROE > 15% 通常被认为是优秀公司。巴菲特非常看重持续高ROE。
+      但需注意：高负债会推高ROE（因为净资产被压缩），需结合负债率分析。
+    related: [eps, pe_ratio, roa]
+
+  - id: roa
+    name_zh: 总资产收益率
+    name_en: Return on Assets (ROA)
+    category: finance
+    difficulty: intermediate
+    definition: >
+      ROA = 净利润 ÷ 总资产，衡量公司利用全部资产赚钱的效率。
+      与ROE不同，ROA不受杠杆（负债）影响，更能反映公司经营效率。
+      银行等重资产行业ROA通常在1%左右，轻资产科技公司ROA可超过15%。
+    related: [roe, eps]
+
+  - id: gross_margin
+    name_zh: 毛利率
+    name_en: Gross Margin
+    category: finance
+    difficulty: intermediate
+    definition: >
+      毛利率 =（营收 − 营业成本）÷ 营收，反映公司产品或服务的基本盈利能力。
+      毛利率越高，说明公司定价权越强、竞争壁垒越深。
+      例如：茅台毛利率超90%，而一般制造业毛利率约20-30%。
+    related: [net_margin, roe]
+
+  - id: net_margin
+    name_zh: 净利率
+    name_en: Net Profit Margin
+    category: finance
+    difficulty: intermediate
+    definition: >
+      净利率 = 净利润 ÷ 营收，反映公司在扣除所有成本、税费后的最终盈利能力。
+      净利率越高，公司抵御成本上涨和价格战的能力越强。
+    related: [gross_margin, eps, roe]
+
+  - id: free_cashflow
+    name_zh: 自由现金流
+    name_en: Free Cash Flow (FCF)
+    category: finance
+    difficulty: intermediate
+    definition: >
+      公司经营现金流减去资本支出后的剩余现金。自由现金流是公司可以自由支配的
+      "真金白银"，用于分红、回购、还债或再投资。FCF持续为正且增长的公司
+      财务更健康。有些公司账面盈利（EPS为正）但FCF为负，需警惕。
+    related: [eps, dividend_yield]
+
+  - id: debt_ratio
+    name_zh: 资产负债率
+    name_en: Debt-to-Asset Ratio
+    category: finance
+    difficulty: intermediate
+    definition: >
+      资产负债率 = 总负债 ÷ 总资产，衡量公司的财务杠杆水平。
+      合理负债可以放大股东回报（杠杆效应），但过高负债增加财务风险。
+      不同行业合理负债率不同：银行可达90%+，消费公司通常30-50%。
+    related: [roe, free_cashflow]
+
+  - id: ev_ebitda
+    name_zh: 企业价值倍数
+    name_en: EV/EBITDA
+    category: finance
+    difficulty: advanced
+    definition: >
+      企业价值（EV = 市值 + 净负债）除以息税折旧摊销前利润（EBITDA）。
+      相比PE，EV/EBITDA排除了资本结构（负债）和折旧政策差异的影响，
+      更适合跨国、跨行业对比。估值倍数越低，通常越被低估。
+    related: [pe_ratio, pb_ratio]
+
+  - id: cagr
+    name_zh: 年复合增长率
+    name_en: Compound Annual Growth Rate (CAGR)
+    category: finance
+    difficulty: intermediate
+    definition: >
+      衡量投资在特定时期内每年平均增长率的指标，考虑了复利效应。
+      公式：CAGR =（终值 ÷ 初值）^(1/n) − 1，n为年数。
+      例如：5年翻倍意味着CAGR约14.9%。CAGR比简单算术平均更准确反映实际增长。
+    related: [compound_interest, annualized_return]
+
+  # ═══ 宏观经济 ═══
+  - id: gdp
+    name_zh: 国内生产总值
+    name_en: Gross Domestic Product (GDP)
+    category: macro
+    difficulty: beginner
+    definition: >
+      一个国家在一定时期内生产的所有最终商品和服务的市场价值总和。
+      GDP增长率是衡量经济健康程度最核心的指标。中国GDP增速通常在5%左右，
+      美国约2-3%。GDP增速与股市长期回报高度相关但短期关联较弱。
+    related: [cpi, pmi]
+
+  - id: cpi
+    name_zh: 居民消费价格指数
+    name_en: Consumer Price Index (CPI)
+    category: macro
+    difficulty: beginner
+    definition: >
+      衡量一篮子代表性消费品和服务价格变化的指标，是衡量通胀的主要工具。
+      CPI温和上涨（2-3%）被视为经济健康的表现；
+      CPI过高（>5%）或为负（通缩）都需警惕。央行制定利率时会重点参考CPI。
+    related: [inflation, interest_rate, ppi]
+
+  - id: pmi
+    name_zh: 采购经理人指数
+    name_en: Purchasing Managers' Index (PMI)
+    category: macro
+    difficulty: intermediate
+    definition: >
+      通过调查采购经理人对生产、新订单、库存等方面的判断编制的经济先行指标。
+      PMI > 50表示经济扩张，< 50表示收缩。PMI通常在GDP之前1-2个月反映经济拐点，
+      是预判市场走势的重要参考。中国官方PMI和财新PMI是两大权威来源。
+    related: [gdp, cpi]
+
+  - id: interest_rate
+    name_zh: 利率
+    name_en: Interest Rate
+    category: macro
+    difficulty: beginner
+    definition: >
+      央行设定的基准利率，是调节经济的核心工具。加息（提高利率）抑制通胀
+      但压制股市估值；降息（降低利率）刺激经济但可能推高资产泡沫。
+      美联储利率决策（FOMC会议）是全球金融市场最受关注的事件之一。
+    related: [inflation, bond_basics, yield]
+
+  - id: exchange_rate
+    name_zh: 汇率
+    name_en: Exchange Rate
+    category: macro
+    difficulty: beginner
+    definition: >
+      两种货币之间的兑换比率，例如USD/CNY = 7.2 表示1美元 = 7.2元人民币。
+      人民币贬值有利于出口企业，但会增加境外投资成本（如QDII基金以人民币计价，
+      美元升值会放大收益）。汇率波动是跨境投资不可忽视的风险因素。
+    related: [interest_rate, qdii]
+
+  - id: monetary_policy
+    name_zh: 货币政策
+    name_en: Monetary Policy
+    category: macro
+    difficulty: intermediate
+    definition: >
+      央行通过调节货币供应量和利率来影响经济的政策措施。
+      宽松（放水）：降息、降准、量化宽松（QE）→ 利好股市；
+      紧缩（收水）：加息、提准、缩表（QT）→ 压制股市。
+      关注央行态度变化是投资必修课。"不要与美联储作对"是华尔街老话。
+    related: [interest_rate, inflation, gdp]
+
+  - id: fiscal_policy
+    name_zh: 财政政策
+    name_en: Fiscal Policy
+    category: macro
+    difficulty: intermediate
+    definition: >
+      政府通过调整税收和公共支出来影响经济的政策。
+      扩张性财政政策（减税、增加基建支出）刺激经济，可能推高通胀和利率；
+      紧缩性财政政策（加税、削减支出）抑制过热。财政和货币政策通常配合使用。
+    related: [monetary_policy, gdp]
+
+  - id: safe_haven
+    name_zh: 避险资产
+    name_en: Safe-Haven Asset
+    category: macro
+    difficulty: beginner
+    definition: >
+      在市场恐慌或不确定性加剧时，投资者涌入以保值的资产。
+      传统避险资产包括：黄金、美国国债、日元、瑞士法郎。
+      近年比特币也被部分投资者视为"数字黄金"，但其避险属性仍存争议。
+    related: [gold, bond_basics, vix]
+
+  - id: vix
+    name_zh: 恐慌指数
+    name_en: Volatility Index (VIX)
+    category: macro
+    difficulty: intermediate
+    definition: >
+      芝加哥期权交易所（CBOE）编制的标普500指数隐含波动率指标，
+      反映市场对未来30天波动的预期。VIX > 30表示市场高度恐慌，
+      VIX < 15表示市场相对平静。VIX常被称作"恐慌指数"或"贪婪恐惧指标"。
+    related: [volatility, safe_haven]
+
+  - id: ppi
+    name_zh: 生产者价格指数
+    name_en: Producer Price Index (PPI)
+    category: macro
+    difficulty: intermediate
+    definition: >
+      衡量工业产品出厂价格变化的指标，可视为CPI的先行指标。
+      PPI上涨意味着企业成本上升，可能传导至终端消费品（CPI上涨），
+      也可能挤压企业利润。PPI与CPI的剪刀差反映产业链利润分配格局。
+    related: [cpi, inflation]
+
+  # ═══ 投资策略 ═══
+  - id: dca
+    name_zh: 定投
+    name_en: Dollar-Cost Averaging (DCA)
+    category: strategy
+    difficulty: beginner
+    definition: >
+      在固定时间以固定金额投资到同一标的的策略，不论市场涨跌。
+      定投的核心优势是"摊平成本"——价格低时买更多份额，价格高时买更少，
+      长期平均成本低于市场均价。尤其适合工薪族和没有时间盯盘的投资者。
+      磐策提供定投计算器帮助规划定投方案。
+    related: [compound_interest, value_investing]
+
+  - id: value_investing
+    name_zh: 价值投资
+    name_en: Value Investing
+    category: strategy
+    difficulty: beginner
+    definition: >
+      寻找被市场低估的优质公司，以低于内在价值的价格买入并长期持有的策略。
+      由格雷厄姆创立、巴菲特发扬光大。核心原则：买股票就是买公司、
+      留有安全边际、保持能力圈。价值投资不需要频繁交易，强调耐心和纪律。
+    related: [pe_ratio, pb_ratio, growth_investing]
+
+  - id: growth_investing
+    name_zh: 成长投资
+    name_en: Growth Investing
+    category: strategy
+    difficulty: beginner
+    definition: >
+      寻找收入和利润增速远超市场平均水平的公司，愿意为高增长支付溢价。
+      成长股通常PE较高，但业绩高增长可以消化高估值。
+      科技股是典型的成长投资标的。成长投资风险较高（增长不达预期时跌幅也大），
+      但与价值投资并非互斥——最好的投资是"以合理价格买成长"（GARP）。
+    related: [value_investing, pe_ratio]
+
+  - id: diversification
+    name_zh: 分散化
+    name_en: Diversification
+    category: strategy
+    difficulty: beginner
+    definition: >
+      "不要把鸡蛋放在一个篮子里"——通过投资不同资产类别、行业、地区来降低
+      单一风险。合理分散可以在不降低预期收益的前提下减少组合波动。
+      但过度分散（持有过多标的）会稀释收益且难以管理。
+      专业投资者认为15-30只股票即可获得大部分分散化效益。
+    related: [asset_allocation, correlation]
+
+  - id: correlation
+    name_zh: 相关性
+    name_en: Correlation
+    category: strategy
+    difficulty: intermediate
+    definition: >
+      衡量两个资产价格走势同步程度的统计指标，范围从−1到+1。
+      相关系数接近+1：同涨同跌（如沪深300和上证50）；
+      接近0：基本无关（如A股和黄金）；
+      接近−1：反向运动（如股票和恐慌指数VIX）。
+      资产配置的核心是寻找低相关性的资产组合，实现真正的分散化。
+    related: [diversification, asset_allocation]
+
+  - id: market_timing
+    name_zh: 择时
+    name_en: Market Timing
+    category: strategy
+    difficulty: intermediate
+    definition: >
+      试图预测市场涨跌并据此调整仓位的策略。多数研究表明，
+      持续准确的择时几乎不可能——即使是专业投资经理也做不到。
+      频繁择时往往导致"高买低卖"（追涨杀跌），长期收益率反而低于买入持有。
+      一般投资者更适合定投和仓位再平衡，而非过度择时。
+    related: [dca, rebalance, buy_and_hold]
+
+  - id: buy_and_hold
+    name_zh: 买入持有
+    name_en: Buy and Hold
+    category: strategy
+    difficulty: beginner
+    definition: >
+      买入优质资产后长期持有，忽略短期市场波动的策略。
+      理论基础：短期市场不可预测，但长期趋势向上。
+      巴菲特说："我们最喜欢的持有期是永远。"买入持有最大挑战是
+      心理层面——在市场大跌时不恐慌抛售。
+    related: [value_investing, dca, market_timing]
+
+  - id: tactical_allocation
+    name_zh: 战术性资产配置
+    name_en: Tactical Asset Allocation
+    category: strategy
+    difficulty: advanced
+    definition: >
+      在战略性资产配置（长期基准）基础上，根据短期市场判断适度调整仓位。
+      例如：长期股债比60/40，若判断股票短期估值过高，可暂时降至50/50。
+      与完全择时不同，战术调整幅度有限（通常在±10-15%），
+      兼顾纪律性和灵活性。
+    related: [asset_allocation, market_timing, rebalance]
+
+  - id: core_satellite
+    name_zh: 核心-卫星策略
+    name_en: Core-Satellite Strategy
+    category: strategy
+    difficulty: intermediate
+    definition: >
+      将投资组合分为两部分：核心（约70-80%）配置低成本的宽基指数ETF，
+      卫星（约20-30%）配置有特定观点的行业ETF或主动基金。
+      核心部分提供市场平均回报，卫星部分博取超额收益。
+      这种策略平衡了成本效率和投资乐趣。
+    related: [etf, asset_allocation, index_fund]
+
+  - id: behavioral_finance
+    name_zh: 行为金融学
+    name_en: Behavioral Finance
+    category: strategy
+    difficulty: intermediate
+    definition: >
+      研究心理因素如何影响投资决策的学科。常见行为偏差包括：
+      过度自信（高估自己判断力）、损失厌恶（亏损的痛苦是盈利快乐的两倍）、
+      羊群效应（跟风追涨）、确认偏差（只听自己认同的观点）。
+      了解这些偏差是成为理性投资者的第一步。
+    related: [market_timing, risk_tolerance]
