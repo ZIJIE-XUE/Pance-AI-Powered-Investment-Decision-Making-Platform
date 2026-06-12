@@ -39,6 +39,7 @@ class PortfolioOptimizationRequest(BaseModel):
     risk_profile_id: UUID
     risk_level: str
     constraints: PortfolioConstraints | None = None
+    preferred_markets: str | None = None  # "A股,港股,美股" — comma-separated market labels
 
 
 class PortfolioResult(BaseModel):

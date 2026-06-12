@@ -12,10 +12,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-import yfinance as yf
 from pypfopt import EfficientFrontier, expected_returns, risk_models
 from pypfopt.exceptions import OptimizationError as PFPOptError
 
+from src.engine.data_provider import fetch_historical_prices as _fetch_multi_market
 from src.engine.metrics import (
     portfolio_expected_return,
     portfolio_volatility,
@@ -52,7 +52,7 @@ def _get_risk_level_bounds(risk_level: str) -> dict[str, tuple[float, float]]:
 
 
 def get_asset_universe() -> list[dict]:
-    """Get a flat list of all assets."""
+    """Get a flat list of all assets with market metadata."""
     assets = _load_config()["asset_universe"]
     flat = []
     for asset_class, tickers in assets.items():
@@ -61,6 +61,10 @@ def get_asset_universe() -> list[dict]:
                 "ticker": t["ticker"],
                 "name": t["name"],
                 "asset_class": t["class"],
+                "market": t.get("market", ""),
+                "region": t.get("region", ""),
+                "ak_symbol": t.get("ak_symbol", t["ticker"]),
+                "yahoo_symbol": t.get("yahoo_symbol", t["ticker"]),
             })
     return flat
 
@@ -72,27 +76,39 @@ def annualized_return(daily_returns: np.ndarray, trading_days: int = 252) -> flo
     return float(np.mean(daily_returns) * trading_days)
 
 
-def fetch_historical_prices(tickers: list[str], period: str = "5y") -> pd.DataFrame:
-    """Fetch historical adjusted close prices from Yahoo Finance."""
+def fetch_historical_prices(tickers: list[str], period: str = "5y", asset_info: list[dict] | None = None) -> pd.DataFrame:
+    """Fetch historical adjusted close prices.
+
+    Uses AKShare primary + Yahoo Finance fallback via the multi-market provider.
+    Falls back to yfinance for backward compatibility if asset_info not provided.
+
+    Args:
+        tickers: List of ticker symbols.
+        period: e.g. '1y', '5y'.
+        asset_info: Optional list of asset metadata dicts with market/ak_symbol/yahoo_symbol.
+
+    Returns:
+        DataFrame indexed by date, columns = tickers, values = close prices.
+    """
     try:
-        data = yf.download(tickers, period=period, auto_adjust=True, progress=False)
-        if data.empty:
-            raise PortfolioOptimizationError("无法获取历史价格数据")
+        if asset_info:
+            # Build asset_info_map for the data provider
+            info_map = {a["ticker"]: a for a in asset_info if a["ticker"] in tickers}
+            data = _fetch_multi_market(tickers, period, info_map)
+        else:
+            # Fallback: use yfinance for backward compatibility
+            import yfinance as yf
+            data = yf.download(tickers, period=period, auto_adjust=True, progress=False)
+            if data.empty:
+                raise PortfolioOptimizationError("无法获取历史价格数据")
+            if len(tickers) == 1:
+                close = data["Close"]
+                if isinstance(close, pd.Series):
+                    return pd.DataFrame({tickers[0]: close})
+                return close
+            data = data["Close"]
 
-        if len(tickers) == 1:
-            close = data["Close"]
-            if isinstance(close, pd.Series):
-                return pd.DataFrame({tickers[0]: close})
-            return close
-
-        close = data["Close"]
-        close = close.dropna(axis=1, thresh=int(len(close) * 0.7))
-        close = close.ffill().dropna()
-
-        if close.empty:
-            raise PortfolioOptimizationError("没有足够的历史价格数据")
-
-        return close
+        return data
     except PortfolioOptimizationError:
         raise
     except Exception as e:

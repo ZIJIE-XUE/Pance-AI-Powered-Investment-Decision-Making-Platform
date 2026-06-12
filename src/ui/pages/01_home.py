@@ -38,6 +38,7 @@ async def _create_or_get_user(user_data: dict) -> User:
             existing.asset_size = user_data["asset_size"]
             existing.investment_horizon = user_data["investment_horizon"]
             existing.investment_goal = user_data.get("investment_goal", "")
+            existing.preferred_markets = user_data.get("preferred_markets", "")
             await session.flush()
             await session.refresh(existing)
             await session.commit()
@@ -52,6 +53,7 @@ async def _create_or_get_user(user_data: dict) -> User:
             asset_size=user_data["asset_size"],
             investment_horizon=user_data["investment_horizon"],
             investment_goal=user_data.get("investment_goal", ""),
+            preferred_markets=user_data.get("preferred_markets", ""),
         )
         session.add(user)
         await session.flush()
@@ -86,6 +88,9 @@ def show():
             st.metric("投资期限", f"{user.get('investment_horizon', 0)}年")
         with col3:
             st.metric("投资目标", user.get("investment_goal", "未指定"))
+            markets = user.get("preferred_markets", "A股,港股,美股")
+            if markets:
+                st.metric("意向市场", markets)
 
         if st.button("🔄 修改信息"):
             st.session_state.user = None
@@ -147,6 +152,17 @@ def show():
         )
 
         st.markdown("---")
+        st.markdown("### 🌍 意向投资市场")
+        st.caption("选择您希望投资的市场，后续组合优化将仅使用选中市场的股票类ETF（债券、黄金、现金不受此限制）")
+
+        preferred_markets = st.multiselect(
+            "意向市场",
+            options=["A股", "港股", "美股", "韩国"],
+            default=["A股", "港股", "美股"],
+            help="可多选。投资组合中的股票类资产将只从您选择的市场中挑选",
+        )
+
+        st.markdown("---")
 
         submitted = st.form_submit_button(
             "💾 保存信息并开始测评",
@@ -187,6 +203,8 @@ def show():
 
             # Create user
             try:
+                preferred_markets_str = ",".join(preferred_markets) if preferred_markets else "A股,港股,美股"
+
                 user = asyncio.run(
                     _create_or_get_user({
                         "email": email,
@@ -196,6 +214,7 @@ def show():
                         "asset_size": asset_size,
                         "investment_horizon": investment_horizon,
                         "investment_goal": investment_goal,
+                        "preferred_markets": preferred_markets_str,
                     })
                 )
 
@@ -208,6 +227,7 @@ def show():
                     "asset_size": user.asset_size,
                     "investment_horizon": user.investment_horizon,
                     "investment_goal": user.investment_goal,
+                    "preferred_markets": user.preferred_markets or "A股,港股,美股",
                 }
 
                 st.success("✅ 信息保存成功！请前往下一步进行风险测评。")

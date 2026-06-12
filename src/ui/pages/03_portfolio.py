@@ -14,7 +14,7 @@ from src.models.portfolio import PortfolioOptimizationRequest
 from src.db.database import async_session_factory
 
 
-async def _optimize_portfolio(user_id, risk_profile_id, risk_level):
+async def _optimize_portfolio(user_id, risk_profile_id, risk_level, preferred_markets=None):
     """Run portfolio optimization."""
     session = async_session_factory()
     try:
@@ -23,6 +23,7 @@ async def _optimize_portfolio(user_id, risk_profile_id, risk_level):
             user_id=user_id,
             risk_profile_id=risk_profile_id,
             risk_level=risk_level,
+            preferred_markets=preferred_markets,
         )
         result = await service.optimize(request)
         await session.commit()
@@ -74,11 +75,13 @@ def show():
     if st.button("🚀 生成投资组合", type="primary", use_container_width=True):
         with st.spinner("正在进行投资组合优化...（获取市场数据可能需要1-2分钟）"):
             try:
+                markets = user.get("preferred_markets", "A股,港股,美股")
                 result = asyncio.run(
                     _optimize_portfolio(
                         user_id=user["id"],
                         risk_profile_id=risk_profile["id"],
                         risk_level=risk_level,
+                        preferred_markets=markets,
                     )
                 )
 

@@ -85,6 +85,24 @@ class PortfolioOptimizationService:
 
         # Get asset universe
         asset_universe = get_asset_universe()
+
+        # ── Market filter: only filter equity assets by user's preferred markets ──
+        if request.preferred_markets:
+            selected_markets = [m.strip() for m in request.preferred_markets.split(",") if m.strip()]
+            region_map = {"A股": "china_a", "港股": "hk", "美股": "us", "韩国": "korea"}
+            allowed_regions = {region_map[m] for m in selected_markets if m in region_map}
+
+            if allowed_regions:
+                asset_universe = [
+                    a for a in asset_universe
+                    if a["asset_class"] != "equity"  # Keep all non-equity assets
+                    or a.get("region", "") in allowed_regions  # Filter equity by region
+                ]
+                logger.info(
+                    "market_filter", markets=selected_markets,
+                    equity_assets=[a["ticker"] for a in asset_universe if a["asset_class"] == "equity"],
+                )
+
         tickers = [a["ticker"] for a in asset_universe]
 
         # Exclude tickers if specified
@@ -105,7 +123,7 @@ class PortfolioOptimizationService:
             # Fetch historical prices
             logger.info("fetching_historical_prices", tickers=tickers)
             try:
-                prices = fetch_historical_prices(tickers)
+                prices = fetch_historical_prices(tickers, asset_info=asset_universe)
             except Exception as e:
                 raise PortfolioOptimizationError(str(e))
 

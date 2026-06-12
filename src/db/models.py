@@ -36,6 +36,7 @@ class User(Base, TimestampMixin):
     asset_size: Mapped[float] = mapped_column(Float, nullable=False)
     investment_horizon: Mapped[int] = mapped_column(Integer, nullable=False)
     investment_goal: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_markets: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     # Relationships
     risk_assessments = relationship("RiskAssessment", back_populates="user")
