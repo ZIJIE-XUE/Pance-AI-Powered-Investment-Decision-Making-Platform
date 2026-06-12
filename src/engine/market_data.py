@@ -246,6 +246,51 @@ def fetch_index_quotes() -> list[dict]:
 
 # ── Public: Fast index snapshots (Yahoo Finance, no sparklines) ──────────────
 
+def fetch_akshare_changes() -> dict[str, dict]:
+    """Fetch change% and sparklines from AKShare for indices Yahoo only gives 1 data point.
+
+    Designed for the history tier (cached 1 hour). Slow (~50s for 3 tickers in parallel).
+    Returns dict mapping ticker -> {change, change_pct, sparkline}.
+    """
+    NEED_AKSHARE = ["399006", "000688", "000905"]
+
+    def _fetch_one(symbol: str) -> tuple[str, float, float, list[float]]:
+        from datetime import datetime, timedelta
+        try:
+            import akshare as ak
+            end = datetime.now().strftime("%Y%m%d")
+            start = (datetime.now() - timedelta(days=60)).strftime("%Y%m%d")
+            df = ak.index_zh_a_hist(
+                symbol=symbol, period="daily",
+                start_date=start, end_date=end,
+            )
+            if df is not None and not df.empty and len(df) >= 2:
+                closes = pd.to_numeric(df["收盘"], errors="coerce").dropna()
+                current = float(closes.iloc[-1])
+                previous = float(closes.iloc[-2])
+                change, change_pct = _compute_change(current, previous)
+                sparkline = closes.tolist()[-30:] if len(closes) >= 30 else closes.tolist()
+                return (symbol, round(change, 4), round(change_pct, 2),
+                        [round(float(v), 4) for v in sparkline])
+        except Exception:
+            pass
+        return (symbol, 0.0, 0.0, [])
+
+    ticker_map = {"399006": "399006", "000688": "000688", "000905": "000905"}
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(_fetch_one, s): s for s in NEED_AKSHARE}
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                symbol, change, change_pct, sparkline = future.result(timeout=30)
+                results[ticker_map[symbol]] = {
+                    "change": change, "change_pct": change_pct, "sparkline": sparkline,
+                }
+            except Exception:
+                pass
+    return results
+
+
 def fetch_index_snapshots() -> list[dict]:
     """Fetch index snapshots (price + change, NO sparklines) via Yahoo Finance.
 
@@ -278,7 +323,6 @@ def fetch_index_snapshots() -> list[dict]:
             }
 
             try:
-                # yf.download returns multi-level columns: ('Close', 'TICKER')
                 if yahoo in hist.get("Close", hist):
                     closes = hist["Close"][yahoo].dropna()
                     if len(closes) >= 1:
@@ -354,34 +398,27 @@ def fetch_index_sparklines() -> dict[str, list[float]]:
 # ── Public: Fast market snapshot coordinator ──────────────────────────────────
 
 def fetch_market_snapshot(asset_universe: list[dict] = None) -> dict:
-    """Fetch fast market data: index prices, sectors, macro indicators.
+    """Fetch fast market data: index prices + macro indicators.
 
-    All three categories fetch in parallel.
-    Target: < 5 seconds total.
+    Both categories fetch in parallel. Target: < 4 seconds.
+    Sector data is fetched separately via fetch_sector_performance(market).
 
-    Returns dict with keys: indices, sectors, macro, timestamp.
+    Returns dict with keys: indices, macro, timestamp.
     """
     results = {
         "indices": [],
-        "sectors": None,
         "macro": {},
         "timestamp": datetime.now(),
     }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         future_indices = executor.submit(fetch_index_snapshots)
-        future_sectors = executor.submit(fetch_sector_performance)
         future_macro = executor.submit(fetch_macro_indicators)
 
         try:
             results["indices"] = future_indices.result(timeout=30)
         except Exception as e:
             logger.warning("snapshot_indices_failed", error=str(e)[:100])
-
-        try:
-            results["sectors"] = future_sectors.result(timeout=15)
-        except Exception as e:
-            logger.warning("snapshot_sectors_failed", error=str(e)[:100])
 
         try:
             results["macro"] = future_macro.result(timeout=20)
@@ -404,12 +441,14 @@ def fetch_market_history(asset_universe: list[dict]) -> dict:
     results = {
         "sparklines": {},
         "etf_movers": [],
+        "akshare_changes": {},
         "timestamp": datetime.now(),
     }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         future_sparklines = executor.submit(fetch_index_sparklines)
         future_etf = executor.submit(fetch_etf_movers, asset_universe)
+        future_akshare = executor.submit(fetch_akshare_changes)
 
         try:
             results["sparklines"] = future_sparklines.result(timeout=30)
@@ -421,65 +460,77 @@ def fetch_market_history(asset_universe: list[dict]) -> dict:
         except Exception as e:
             logger.warning("history_etf_failed", error=str(e)[:100])
 
+        try:
+            results["akshare_changes"] = future_akshare.result(timeout=60)
+        except Exception as e:
+            logger.warning("history_akshare_failed", error=str(e)[:100])
+
     return results
+
+
+# ── Sector definitions per market ────────────────────────────────────────────
+
+# US: GICS sector ETFs (SPDR Select Sector)
+_US_SECTORS = {
+    "XLK": "科技", "XLF": "金融", "XLV": "医疗健康", "XLE": "能源",
+    "XLI": "工业", "XLY": "可选消费", "XLP": "必需消费", "XLB": "材料",
+    "XLU": "公用事业", "XLRE": "房地产", "XLC": "通信服务",
+}
+
+# HK: representative sector ETFs / indices
+_HK_SECTORS = {
+    "3067.HK": "科技",
+    "2826.HK": "生物科技",
+    "2825.HK": "汽车",
+    "2828.HK": "国企/H股",
+    "2823.HK": "A50中国",
+    "2822.HK": "金融",
+    "2840.HK": "黄金",
+    "3010.HK": "半导体",
+    "2809.HK": "清洁能源",
+    "2800.HK": "恒生(基准)",
+}
 
 
 # ── Public: Sector performance ───────────────────────────────────────────────
 
-def fetch_sector_performance() -> Optional[pd.DataFrame]:
-    """Fetch industry sector performance from AKShare (同花顺板块数据).
-
-    Returns:
-        DataFrame with columns: name, change_pct, price, volume, turnover.
-        Returns None on failure.
-    """
+def _fetch_a_share_sectors() -> Optional[pd.DataFrame]:
+    """Fetch A-share industry sectors via AKShare (同花顺)."""
     try:
         import akshare as ak
     except ImportError:
-        logger.warning("akshare_not_installed_for_sectors")
         return None
 
     try:
         df = ak.stock_board_industry_summary_ths()
-
         if df is None or df.empty:
-            logger.warning("sector_data_empty")
             return None
 
-        # Standardize column names — only map first match to avoid duplicates
         col_map = {}
         targets_mapped = set()
         for col in df.columns:
             col_str = str(col)
-
             if "name" not in targets_mapped and any(kw in col_str for kw in ["板块", "名称", "行业"]):
-                col_map[col] = "name"
-                targets_mapped.add("name")
+                col_map[col] = "name"; targets_mapped.add("name")
             elif "change_pct" not in targets_mapped and "涨跌幅" in col_str:
-                col_map[col] = "change_pct"
-                targets_mapped.add("change_pct")
+                col_map[col] = "change_pct"; targets_mapped.add("change_pct")
             elif "price" not in targets_mapped and any(kw in col_str for kw in ["最新价", "收盘价"]):
-                col_map[col] = "price"
-                targets_mapped.add("price")
+                col_map[col] = "price"; targets_mapped.add("price")
             elif "volume" not in targets_mapped and "成交量" in col_str:
-                col_map[col] = "volume"
-                targets_mapped.add("volume")
+                col_map[col] = "volume"; targets_mapped.add("volume")
             elif "turnover" not in targets_mapped and "成交额" in col_str:
-                col_map[col] = "turnover"
-                targets_mapped.add("turnover")
+                col_map[col] = "turnover"; targets_mapped.add("turnover")
             elif "market_cap" not in targets_mapped and any(kw in col_str for kw in ["总市值", "市值"]):
-                col_map[col] = "market_cap"
-                targets_mapped.add("market_cap")
+                col_map[col] = "market_cap"; targets_mapped.add("market_cap")
 
         if col_map:
             result = df.rename(columns=col_map)
         else:
             result = df.copy()
 
-        # Drop duplicate columns (keep first occurrence)
         result = result.loc[:, ~result.columns.duplicated(keep="first")]
 
-        # Ensure required columns exist — if name not found, use positional fallback
+        # Positional fallback if name not matched
         if "name" not in result.columns:
             cols = list(result.columns)
             if len(cols) >= 1:
@@ -489,33 +540,103 @@ def fetch_sector_performance() -> Optional[pd.DataFrame]:
             if len(cols) >= 3 and "price" not in result.columns:
                 result["price"] = pd.to_numeric(df.iloc[:, 2], errors="coerce")
 
-        # Select and clean
         keep_cols = ["name"]
         for c in ["change_pct", "price", "volume", "turnover", "market_cap"]:
             if c in result.columns:
                 keep_cols.append(c)
-
         result = result[keep_cols].copy()
 
-        # Convert numeric columns (handle potential duplicate column names)
         for c in keep_cols:
             if c != "name" and c in result.columns:
-                # If column name appears multiple times, take first
                 col_data = result[c]
                 if isinstance(col_data, pd.DataFrame):
                     col_data = col_data.iloc[:, 0]
                 result[c] = pd.to_numeric(col_data, errors="coerce")
 
-        result = result.dropna(subset=["name"])
-        result = result.sort_values("change_pct", ascending=False, na_position="last")
+        # Round change_pct to 2 decimal places
+        if "change_pct" in result.columns:
+            result["change_pct"] = result["change_pct"].round(2)
 
         result = result.dropna(subset=["name"])
         result = result.sort_values("change_pct", ascending=False, na_position="last")
-
         return result
 
     except Exception as e:
-        logger.warning("sector_fetch_failed", error=str(e)[:100])
+        logger.warning("a_share_sectors_failed", error=str(e)[:100])
+        return None
+
+
+def _fetch_yahoo_sectors(sector_map: dict[str, str]) -> Optional[pd.DataFrame]:
+    """Fetch sector performance via Yahoo Finance batch download.
+
+    Args:
+        sector_map: {ticker: display_name} mapping.
+
+    Returns:
+        DataFrame with columns: name, change_pct, price.
+    """
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+
+    try:
+        tickers = list(sector_map.keys())
+        hist = yf.download(tickers, period="2d", progress=False, auto_adjust=True)
+
+        if hist is None or hist.empty:
+            return None
+
+        rows = []
+        for ticker, name in sector_map.items():
+            if ticker in hist.get("Close", hist):
+                closes = hist["Close"][ticker].dropna()
+                if len(closes) >= 2:
+                    current = float(closes.iloc[-1])
+                    previous = float(closes.iloc[-2])
+                    change_pct = round((current - previous) / previous * 100, 2)
+                    rows.append({
+                        "name": name,
+                        "change_pct": change_pct,
+                        "price": round(current, 2),
+                    })
+                elif len(closes) >= 1:
+                    rows.append({
+                        "name": name,
+                        "change_pct": 0.0,
+                        "price": round(float(closes.iloc[-1]), 2),
+                    })
+
+        if not rows:
+            return None
+
+        df = pd.DataFrame(rows)
+        df = df.sort_values("change_pct", ascending=False, na_position="last")
+        return df
+
+    except Exception as e:
+        logger.warning("yahoo_sectors_failed", error=str(e)[:100])
+        return None
+
+
+def fetch_sector_performance(market: str = "a_share") -> Optional[pd.DataFrame]:
+    """Fetch industry sector performance for the specified market.
+
+    Args:
+        market: One of 'a_share', 'us', 'hk'.
+
+    Returns:
+        DataFrame with columns: name, change_pct, price (plus volume/turnover for A-shares).
+        Returns None on failure.
+    """
+    if market == "a_share":
+        return _fetch_a_share_sectors()
+    elif market == "us":
+        return _fetch_yahoo_sectors(_US_SECTORS)
+    elif market == "hk":
+        return _fetch_yahoo_sectors(_HK_SECTORS)
+    else:
+        logger.warning("unknown_sector_market", market=market)
         return None
 
 

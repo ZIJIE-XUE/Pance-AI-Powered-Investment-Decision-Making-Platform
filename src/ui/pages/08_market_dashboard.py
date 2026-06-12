@@ -61,10 +61,21 @@ def _fetch_snapshot_cached() -> dict:
         logger.error("snapshot_fetch_failed", error=str(e))
         return {
             "indices": [],
-            "sectors": None,
             "macro": {},
             "timestamp": datetime.now(),
         }
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_sectors_cached(market: str) -> dict:
+    """Fetch sector performance for a specific market. Cached separately."""
+    from src.engine.market_data import fetch_sector_performance
+
+    try:
+        sectors = fetch_sector_performance(market)
+        return {"sectors": sectors, "market": market}
+    except Exception:
+        return {"sectors": None, "market": market}
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -240,21 +251,44 @@ def _render_single_card(idx: dict):
 
 # ── Row 2: Sector heatmap ────────────────────────────────────────────────────
 
-def _render_sector_heatmap(sectors: pd.DataFrame):
-    """Render sector performance as a treemap + optional detail table.
+MARKET_LABELS = {"a_share": "A股", "us": "美股", "hk": "港股"}
 
-    Args:
-        sectors: DataFrame with columns name, change_pct, price, volume, etc.
-    """
+
+def _render_sector_section():
+    """Render sector heatmap with market toggle."""
     st.markdown("---")
-    st.markdown("### 🏭 行业板块表现")
 
+    # Header row with title + market toggle
+    col_title, col_toggle = st.columns([2, 1])
+    with col_title:
+        st.markdown("### 🏭 行业板块表现")
+    with col_toggle:
+        market = st.radio(
+            "切换市场",
+            options=["a_share", "us", "hk"],
+            format_func=lambda m: MARKET_LABELS.get(m, m),
+            horizontal=True,
+            key="sector_market",
+            label_visibility="collapsed",
+        )
+
+    sectors_data = _fetch_sectors_cached(market)
+    sectors = sectors_data.get("sectors")
+
+    _render_sector_heatmap(sectors, market)
+
+
+def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
+    """Render sector performance as a treemap + optional detail table."""
     if sectors is None or sectors.empty:
-        st.info("📡 行业板块数据暂不可用")
+        st.info(f"📡 {MARKET_LABELS.get(market, market)}行业板块数据暂不可用")
         return
 
     # Prepare data
     df = sectors.copy()
+    # Round percentages to 2 decimal places
+    if "change_pct" in df.columns:
+        df["change_pct"] = df["change_pct"].round(2)
     # Limit to top 40 sectors for readability
     if len(df) > 40:
         df = df.head(40)
@@ -285,10 +319,10 @@ def _render_sector_heatmap(sectors: pd.DataFrame):
     )
 
     fig.update_traces(
-        texttemplate="<b>%{label}</b><br>%{customdata[0]:+.2f}%",
+        texttemplate="<b>%{label}</b><br>%{customdata[0]:+.2f}%%",
         textposition="middle center",
         textfont_size=14,
-        hovertemplate="<b>%{label}</b><br>涨跌幅: %{color:+.2f}%<br>最新价: %{customdata[1]:.2f}<extra></extra>",
+        hovertemplate="<b>%{label}</b><br>涨跌幅: %{customdata[0]:+.2f}%%<br>最新价: %{customdata[1]:.2f}<extra></extra>",
         marker=dict(cornerradius=4),
     )
 
@@ -518,11 +552,22 @@ def show():
         if ticker in sparklines_map and sparklines_map[ticker]:
             idx["sparkline"] = sparklines_map[ticker]
 
+    # Patch AKShare data (change% + sparklines) for indices Yahoo only gave 1 point
+    akshare_data = history.get("akshare_changes", {})
+    for idx in indices:
+        ticker = idx.get("ticker", "")
+        if ticker in akshare_data:
+            patch = akshare_data[ticker]
+            idx["change"] = patch["change"]
+            idx["change_pct"] = patch["change_pct"]
+            if patch.get("sparkline"):
+                idx["sparkline"] = patch["sparkline"]
+
     # Row 1: Index cards
     _render_index_cards(indices)
 
-    # Row 2: Sector heatmap
-    _render_sector_heatmap(snapshot.get("sectors"))
+    # Row 2: Sector heatmap with market toggle
+    _render_sector_section()
 
     # Row 3: Macro indicators
     _render_macro_cards(snapshot.get("macro", {}))
