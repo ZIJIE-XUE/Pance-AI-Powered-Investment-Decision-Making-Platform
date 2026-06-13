@@ -1,0 +1,801 @@
+"""Temperature DCA Backtest Engine.
+
+Core engine for the flagship "温度定投系统" module.
+Simulates three strategies over historical data:
+  1. Temperature-driven DCA (dynamic multiplier based on market temperature)
+  2. Regular DCA (fixed monthly amount)
+  3. Lump sum (all-in at start, for benchmark comparison)
+
+Computes comparative metrics: total return, CAGR, max drawdown, Sharpe ratio, etc.
+"""
+
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from src.engine.market_thermometer import (
+    _ma_deviation_score,
+    _pe_to_score,
+    _PE_THRESHOLDS,
+    classify_temperature,
+)
+
+logger = logging.getLogger(__name__)
+
+# ── Index definitions (multi-source symbols) ─────────────────────────────────
+
+_BACKTEST_INDICES = {
+    "上证50": {
+        "csindex_code": "000016",
+        "ak_symbol": "000016",
+        "sina_symbol": "sh000016",
+        "pe_thresholds": [8.5, 10.0, 12.0, 14.0],
+    },
+    "沪深300": {
+        "csindex_code": "000300",
+        "ak_symbol": "000300",
+        "sina_symbol": "sh000300",
+        "pe_thresholds": [10.5, 12.5, 15.0, 17.5],
+    },
+    "中证500": {
+        "csindex_code": "000905",
+        "ak_symbol": "000905",
+        "sina_symbol": "sh000905",
+        "pe_thresholds": [22.0, 27.0, 33.0, 40.0],
+    },
+    "中证1000": {
+        "csindex_code": "000852",
+        "ak_symbol": "000852",
+        "sina_symbol": "sh000852",
+        "pe_thresholds": [28.0, 33.0, 40.0, 48.0],
+    },
+}
+
+# ── Strategy multiplier maps ─────────────────────────────────────────────────
+
+STRATEGIES = {
+    "aggressive": {
+        "name": "积极",
+        "desc": "低温重仓，高位空仓",
+        "multipliers": [
+            (0, 20, 2.0),
+            (20, 40, 1.5),
+            (40, 60, 1.0),
+            (60, 80, 0.25),
+            (80, 101, 0.0),
+        ],
+    },
+    "moderate": {
+        "name": "适中",
+        "desc": "均衡加减仓",
+        "multipliers": [
+            (0, 20, 1.5),
+            (20, 40, 1.25),
+            (40, 60, 1.0),
+            (60, 80, 0.5),
+            (80, 101, 0.0),
+        ],
+    },
+    "conservative": {
+        "name": "保守",
+        "desc": "温和微调",
+        "multipliers": [
+            (0, 20, 1.25),
+            (20, 40, 1.1),
+            (40, 60, 1.0),
+            (60, 80, 0.75),
+            (80, 101, 0.5),
+        ],
+    },
+}
+
+
+def get_multiplier(temperature: float, strategy_name: str) -> float:
+    """Map a temperature score (0-100) to an investment multiplier."""
+    strategy = STRATEGIES.get(strategy_name, STRATEGIES["moderate"])
+    for lo, hi, mult in strategy["multipliers"]:
+        if lo <= temperature < hi:
+            return mult
+    return 1.0
+
+
+# ── Data fetching ────────────────────────────────────────────────────────────
+
+def _fetch_prices_sina(sina_symbol: str, years: int) -> Optional[pd.DataFrame]:
+    """Fetch historical index prices via Sina (ak.stock_zh_index_daily).
+
+    Returns DataFrame with columns: date, close, or None on failure.
+    """
+    try:
+        import akshare as ak
+
+        df = ak.stock_zh_index_daily(symbol=sina_symbol)
+        if df is None or df.empty:
+            logger.warning("sina_empty", symbol=sina_symbol)
+            return None
+
+        # Normalise column names (Sina returns Chinese: 日期, 收盘)
+        rename_map = {}
+        for col in df.columns:
+            if col in ("date", "日期"):
+                rename_map[col] = "date"
+            elif col in ("close", "收盘"):
+                rename_map[col] = "close"
+        df = df.rename(columns=rename_map)
+
+        if "date" not in df.columns or "close" not in df.columns:
+            # Try positional fallback: first col = date, fourth col = close
+            cols = list(df.columns)
+            if len(cols) >= 4:
+                df = df.rename(columns={cols[0]: "date", cols[3]: "close"})
+            else:
+                return None
+
+        df["date"] = pd.to_datetime(df["date"])
+        df["close"] = pd.to_numeric(df["close"], errors="coerce")
+        df = df.dropna(subset=["close"]).sort_values("date")
+
+        if df.empty:
+            return None
+
+        # Filter to requested years
+        cutoff = datetime.now() - timedelta(days=years * 365 + 30)
+        df = df[df["date"] >= cutoff]
+
+        return df[["date", "close"]].reset_index(drop=True)
+
+    except Exception as e:
+        logger.warning("sina_fetch_failed", symbol=sina_symbol, error=str(e)[:100])
+        return None
+
+
+def _fetch_prices_eastmoney(ak_symbol: str, years: int) -> Optional[pd.DataFrame]:
+    """Fallback: fetch prices via EastMoney (ak.index_zh_a_hist)."""
+    try:
+        import akshare as ak
+
+        end = datetime.now().strftime("%Y%m%d")
+        start = (datetime.now() - timedelta(days=years * 365 + 30)).strftime("%Y%m%d")
+
+        df = ak.index_zh_a_hist(
+            symbol=ak_symbol,
+            period="daily",
+            start_date=start,
+            end_date=end,
+        )
+        if df is None or df.empty:
+            return None
+
+        df = df.rename(columns={"日期": "date", "收盘": "close"})
+        df["date"] = pd.to_datetime(df["date"])
+        df["close"] = pd.to_numeric(df["close"], errors="coerce")
+        df = df.dropna(subset=["close"]).sort_values("date")
+
+        return df[["date", "close"]].reset_index(drop=True)
+
+    except Exception as e:
+        logger.warning("eastmoney_fetch_failed", symbol=ak_symbol, error=str(e)[:100])
+        return None
+
+
+def _fetch_pe_history(csindex_code: str) -> Optional[pd.DataFrame]:
+    """Fetch PE history from CSIndex (limited to ~20 trading days).
+
+    Returns DataFrame with columns: date, pe, or None.
+    """
+    try:
+        import akshare as ak
+
+        df = ak.stock_zh_index_value_csindex(symbol=csindex_code)
+        if df is None or df.empty:
+            return None
+
+        df = df.rename(columns={
+            "日期": "date",
+            "市盈率1": "pe_static",
+            "市盈率2": "pe_rolling",
+        })
+
+        pe_col = "pe_rolling" if "pe_rolling" in df.columns else "pe_static"
+        df[pe_col] = pd.to_numeric(df[pe_col], errors="coerce")
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.dropna(subset=[pe_col]).sort_values("date")
+
+        return df[["date", pe_col]].rename(columns={pe_col: "pe"})
+
+    except Exception as e:
+        logger.warning("pe_history_failed", code=csindex_code, error=str(e)[:100])
+        return None
+
+
+# ── Monthly resampling & temperature computation ─────────────────────────────
+
+def _resample_to_monthly(prices_df: pd.DataFrame) -> pd.DataFrame:
+    """Resample daily price data to monthly (last trading day of each month)."""
+    df = prices_df.copy()
+    df["year_month"] = df["date"].dt.to_period("M")
+
+    monthly = df.groupby("year_month").agg(
+        date=("date", "last"),
+        close=("close", "last"),
+    ).reset_index(drop=True)
+
+    # Compute 200-day moving average at each month-end
+    # We need the full daily series for this — compute MA first, then sample
+    df["ma200"] = df["close"].rolling(window=200, min_periods=200).mean()
+    df["year_month"] = df["date"].dt.to_period("M")
+
+    monthly_ma = df.groupby("year_month").agg(
+        ma200=("ma200", "last"),
+    ).reset_index(drop=True)
+
+    result = monthly.merge(monthly_ma, left_index=True, right_index=True)
+    result = result.dropna(subset=["ma200"])  # need 200 days of history
+
+    return result
+
+
+def _compute_monthly_temperatures(
+    monthly_df: pd.DataFrame,
+    pe_df: Optional[pd.DataFrame],
+    pe_thresholds: list[float],
+) -> pd.DataFrame:
+    """Compute temperature (0-100) for each month.
+
+    Uses PE score (60%) + MA deviation score (40%) where PE is available;
+    falls back to MA-deviation-only otherwise.
+    """
+    df = monthly_df.copy()
+
+    # MA deviation score for all months
+    df["ma_deviation_pct"] = (df["close"] - df["ma200"]) / df["ma200"] * 100
+    df["ma_score"] = df["ma_deviation_pct"].apply(_ma_deviation_score)
+
+    # PE score — merge PE data onto closest month
+    if pe_df is not None and not pe_df.empty:
+        pe_monthly = pe_df.copy()
+        pe_monthly["year_month"] = pe_monthly["date"].dt.to_period("M")
+        pe_agg = pe_monthly.groupby("year_month")["pe"].last().reset_index()
+        pe_agg.columns = ["year_month", "pe"]
+
+        df["year_month"] = df["date"].dt.to_period("M")
+        df = df.merge(pe_agg, on="year_month", how="left")
+
+        # Compute PE score where available
+        pe_scores = []
+        has_pe_count = 0
+        for _, row in df.iterrows():
+            if pd.notna(row.get("pe")):
+                pe_scores.append(_pe_to_score(float(row["pe"]), pe_thresholds))
+                has_pe_count += 1
+            else:
+                pe_scores.append(None)
+        df["pe_score"] = pe_scores
+
+        if has_pe_count > len(df) * 0.3:
+            # Enough PE data: use 60/40 weighted model
+            df["temperature"] = df.apply(
+                lambda r: (
+                    r["pe_score"] * 0.6 + r["ma_score"] * 0.4
+                    if pd.notna(r.get("pe_score"))
+                    else r["ma_score"]
+                ),
+                axis=1,
+            )
+        else:
+            df["temperature"] = df["ma_score"]
+    else:
+        df["temperature"] = df["ma_score"]
+        df["pe_score"] = None
+
+    # Remove incomplete rows
+    df = df.dropna(subset=["temperature"])
+
+    return df
+
+
+# ── Strategy simulation ──────────────────────────────────────────────────────
+
+def _simulate_regular_dca(
+    monthly_df: pd.DataFrame,
+    base_monthly: float,
+) -> dict:
+    """Simulate regular fixed-amount DCA."""
+    shares = 0.0
+    total_invested = 0.0
+    records = []
+
+    for _, row in monthly_df.iterrows():
+        price = float(row["close"])
+        shares += base_monthly / price
+        total_invested += base_monthly
+
+        portfolio_value = shares * price
+
+        records.append({
+            "date": row["date"],
+            "price": round(price, 2),
+            "invested": base_monthly,
+            "total_invested": round(total_invested, 2),
+            "shares": round(shares, 4),
+            "portfolio_value": round(portfolio_value, 2),
+            "cash_pool": 0.0,
+        })
+
+    return {
+        "records": records,
+        "total_invested": round(total_invested, 2),
+        "total_months": len(records),
+    }
+
+
+def _simulate_temperature_dca(
+    monthly_df: pd.DataFrame,
+    base_monthly: float,
+    strategy_name: str,
+) -> dict:
+    """Simulate temperature-driven DCA with cash pool.
+
+    Rules:
+    - multiplier > 1: invest extra from cash pool (capped at pool balance)
+    - multiplier < 1: save difference to cash pool
+    - multiplier = 1: normal investment, no pool change
+    """
+    shares = 0.0
+    cash_pool = 0.0
+    total_invested = 0.0
+    records = []
+
+    strategy = STRATEGIES.get(strategy_name, STRATEGIES["moderate"])
+
+    for _, row in monthly_df.iterrows():
+        price = float(row["close"])
+        temperature = float(row["temperature"])
+        multiplier = get_multiplier(temperature, strategy_name)
+
+        if multiplier > 1.0:
+            # Invest extra — draw from cash pool
+            extra_needed = base_monthly * (multiplier - 1.0)
+            extra_available = min(extra_needed, cash_pool)
+            actual_invest = base_monthly + extra_available
+            cash_pool -= extra_available
+        elif multiplier < 1.0:
+            # Invest less — save to cash pool
+            actual_invest = base_monthly * multiplier
+            cash_pool += base_monthly - actual_invest
+        else:
+            actual_invest = base_monthly
+
+        shares += actual_invest / price
+        total_invested += actual_invest
+        portfolio_value = shares * price + cash_pool
+
+        records.append({
+            "date": row["date"],
+            "price": round(price, 2),
+            "temperature": round(temperature, 1),
+            "multiplier": multiplier,
+            "invested": round(actual_invest, 2),
+            "total_invested": round(total_invested, 2),
+            "shares": round(shares, 4),
+            "portfolio_value": round(portfolio_value, 2),
+            "cash_pool": round(cash_pool, 2),
+        })
+
+    return {
+        "records": records,
+        "total_invested": round(total_invested, 2),
+        "total_months": len(records),
+        "end_cash_pool": round(cash_pool, 2),
+    }
+
+
+def _simulate_lump_sum(
+    monthly_df: pd.DataFrame,
+    total_amount: float,
+) -> dict:
+    """Simulate lump-sum investment (all-in at start)."""
+    first_price = float(monthly_df.iloc[0]["close"])
+    shares = total_amount / first_price
+    records = []
+
+    for _, row in monthly_df.iterrows():
+        price = float(row["close"])
+        portfolio_value = shares * price
+
+        records.append({
+            "date": row["date"],
+            "price": round(price, 2),
+            "portfolio_value": round(portfolio_value, 2),
+        })
+
+    return {
+        "records": records,
+        "total_invested": total_amount,
+        "total_months": len(records),
+        "shares": round(shares, 4),
+    }
+
+
+# ── Performance metrics ──────────────────────────────────────────────────────
+
+def _compute_metrics(
+    sim_result: dict,
+    monthly_df: pd.DataFrame,
+) -> dict:
+    """Compute standard performance metrics from simulation results."""
+    records = sim_result["records"]
+    total_invested = sim_result["total_invested"]
+    total_months = sim_result["total_months"]
+
+    if not records or total_months < 2:
+        return {
+            "total_return_pct": 0,
+            "cagr_pct": 0,
+            "max_drawdown_pct": 0,
+            "sharpe_ratio": 0,
+            "volatility_pct": 0,
+            "win_rate_pct": 0,
+            "final_value": 0,
+        }
+
+    final_value = records[-1]["portfolio_value"]
+
+    # Total return
+    total_return_pct = (final_value - total_invested) / total_invested * 100 if total_invested > 0 else 0
+
+    # CAGR
+    years_elapsed = total_months / 12
+    if years_elapsed > 0 and total_invested > 0 and final_value > 0:
+        cagr_pct = ((final_value / total_invested) ** (1 / years_elapsed) - 1) * 100
+    else:
+        cagr_pct = 0.0
+
+    # Max drawdown
+    peaks = np.maximum.accumulate([r["portfolio_value"] for r in records])
+    drawdowns = (np.array([r["portfolio_value"] for r in records]) - peaks) / peaks * 100
+    max_dd_pct = abs(float(np.min(drawdowns))) if len(drawdowns) > 0 else 0.0
+
+    # Monthly returns for Sharpe & volatility
+    monthly_returns = []
+    for i in range(1, len(records)):
+        prev_val = records[i - 1]["portfolio_value"]
+        curr_val = records[i]["portfolio_value"]
+        net_invest = records[i].get("invested", 0)
+        if prev_val > 0:
+            ret = (curr_val - prev_val - net_invest) / prev_val
+            monthly_returns.append(ret)
+
+    if len(monthly_returns) >= 3:
+        avg_ret = np.mean(monthly_returns)
+        std_ret = np.std(monthly_returns, ddof=1)
+        ann_vol = std_ret * np.sqrt(12) * 100  # annualised volatility %
+
+        # Sharpe ratio (assume 2% risk-free)
+        rf_monthly = 0.02 / 12
+        excess = np.array(monthly_returns) - rf_monthly
+        sharpe = (np.mean(excess) / np.std(excess, ddof=1)) * np.sqrt(12) if np.std(excess, ddof=1) > 0 else 0.0
+    else:
+        ann_vol = 0.0
+        sharpe = 0.0
+
+    # Win rate: % of months where portfolio value > cost basis
+    wins = sum(
+        1 for r in records
+        if r["portfolio_value"] > r.get("total_invested", r.get("total_invested", 0))
+    )
+    win_rate_pct = wins / total_months * 100 if total_months > 0 else 0.0
+
+    return {
+        "total_return_pct": round(total_return_pct, 1),
+        "cagr_pct": round(cagr_pct, 1),
+        "max_drawdown_pct": round(max_dd_pct, 1),
+        "sharpe_ratio": round(sharpe, 2),
+        "volatility_pct": round(ann_vol, 1),
+        "win_rate_pct": round(win_rate_pct, 1),
+        "final_value": round(final_value, 2),
+    }
+
+
+# ── Main orchestrator ────────────────────────────────────────────────────────
+
+def run_backtest(
+    index_name: str = "沪深300",
+    years: int = 5,
+    base_monthly: float = 5000.0,
+    strategy_name: str = "moderate",
+) -> dict:
+    """Run a complete backtest comparing three DCA strategies.
+
+    Args:
+        index_name: One of 上证50 / 沪深300 / 中证500 / 中证1000
+        years: Backtest horizon (1-10 years)
+        base_monthly: Base monthly investment amount in CNY
+        strategy_name: aggressive / moderate / conservative
+
+    Returns:
+        Dict with strategy results, comparison metrics, and data quality info.
+    """
+    idx_def = _BACKTEST_INDICES.get(index_name)
+    if idx_def is None:
+        return {
+            "error": f"不支持的指数: {index_name}",
+            "supported": list(_BACKTEST_INDICES.keys()),
+        }
+
+    # ── 1. Fetch price data ──────────────────────────────────────────────────
+    prices_df = _fetch_prices_sina(idx_def["sina_symbol"], years)
+    data_source = "sina"
+
+    if prices_df is None or prices_df.empty:
+        prices_df = _fetch_prices_eastmoney(idx_def["ak_symbol"], years)
+        data_source = "eastmoney"
+
+    if prices_df is None or prices_df.empty:
+        return {
+            "error": f"无法获取 {index_name} 的历史价格数据。请稍后重试。",
+            "index_name": index_name,
+        }
+
+    if len(prices_df) < 200:
+        return {
+            "error": f"{index_name} 历史数据不足（仅 {len(prices_df)} 个交易日，至少需要200天计算均线）。请缩短回测年限。",
+            "index_name": index_name,
+            "available_days": len(prices_df),
+        }
+
+    # ── 2. Fetch PE data (optional enhancement) ───────────────────────────────
+    pe_df = _fetch_pe_history(idx_def["csindex_code"])
+    has_pe = pe_df is not None and not pe_df.empty
+
+    # ── 3. Resample to monthly & compute temperatures ────────────────────────
+    monthly_df = _resample_to_monthly(prices_df)
+
+    if monthly_df.empty or len(monthly_df) < 3:
+        return {
+            "error": f"月度数据不足（仅 {len(monthly_df)} 个月），无法进行有意义的回测。",
+            "index_name": index_name,
+        }
+
+    monthly_df = _compute_monthly_temperatures(
+        monthly_df, pe_df, idx_def["pe_thresholds"]
+    )
+
+    # ── 4. Simulate three strategies ──────────────────────────────────────────
+    temp_dca = _simulate_temperature_dca(monthly_df, base_monthly, strategy_name)
+    regular_dca = _simulate_regular_dca(monthly_df, base_monthly)
+    lump_total = base_monthly * 12 * years
+    lump_sum = _simulate_lump_sum(monthly_df, lump_total)
+
+    # ── 5. Compute metrics for each ───────────────────────────────────────────
+    temp_metrics = _compute_metrics(temp_dca, monthly_df)
+    regular_metrics = _compute_metrics(regular_dca, monthly_df)
+    lump_metrics = _compute_metrics(lump_sum, monthly_df)
+
+    # ── 6. Yearly breakdown ──────────────────────────────────────────────────
+    yearly_breakdown = _build_yearly_breakdown(temp_dca, monthly_df, base_monthly)
+
+    # ── 7. Temperature timeline ──────────────────────────────────────────────
+    temp_timeline = monthly_df[["date", "temperature", "ma_deviation_pct"]].copy()
+    temp_timeline["temperature"] = temp_timeline["temperature"].round(1)
+    temp_timeline["ma_deviation_pct"] = temp_timeline["ma_deviation_pct"].round(2)
+    if "pe" in monthly_df.columns:
+        temp_timeline["pe"] = monthly_df["pe"]
+    temp_timeline["zone"] = temp_timeline["temperature"].apply(
+        lambda t: classify_temperature(t)["zone_label"]
+    )
+
+    # ── 8. Mechanism analysis ──────────────────────────────────────────────
+    mechanism = _build_mechanism_analysis(
+        temp_dca, regular_dca, lump_sum,
+        temp_metrics, regular_metrics, lump_metrics,
+        base_monthly, strategy_name,
+    )
+
+    # ── 9. Assemble result ─────────────────────────────────────────────────
+    date_start = monthly_df.iloc[0]["date"]
+    date_end = monthly_df.iloc[-1]["date"]
+
+    return {
+        "config": {
+            "index_name": index_name,
+            "years_requested": years,
+            "base_monthly": base_monthly,
+            "strategy_name": strategy_name,
+            "strategy_label": STRATEGIES[strategy_name]["name"],
+            "strategy_desc": STRATEGIES[strategy_name]["desc"],
+        },
+        "data_quality": {
+            "data_source": data_source,
+            "has_pe_data": has_pe,
+            "total_months": len(monthly_df),
+            "date_start": date_start.strftime("%Y-%m-%d") if hasattr(date_start, "strftime") else str(date_start)[:10],
+            "date_end": date_end.strftime("%Y-%m-%d") if hasattr(date_end, "strftime") else str(date_end)[:10],
+        },
+        "temperature_dca": {**temp_dca, **temp_metrics},
+        "regular_dca": {**regular_dca, **regular_metrics},
+        "lump_sum": {**lump_sum, **lump_metrics},
+        "mechanism": mechanism,
+        "yearly_breakdown": yearly_breakdown,
+        "temperature_timeline": temp_timeline,
+        "monthly_df": monthly_df[["date", "close", "ma200", "temperature"]].copy(),
+    }
+
+
+def _build_mechanism_analysis(
+    temp_dca: dict,
+    reg_dca: dict,
+    lump_sum: dict,
+    temp_m: dict,
+    reg_m: dict,
+    lump_m: dict,
+    base_monthly: float,
+    strategy_name: str,
+) -> dict:
+    """Build rich mechanism analysis: what happened and why.
+
+    Returns data for:
+    - Return/drawdown ratio (key quality metric)
+    - Zone-by-zone investment breakdown
+    - Cash pool dynamics
+    - Honest caveat about when strategy underperforms
+    """
+    records = temp_dca["records"]
+
+    # ── Return / drawdown ratio ───────────────────────────────────────────
+    def _rr_ratio(ret_pct: float, dd_pct: float) -> float:
+        """Return earned per 1% of max drawdown endured."""
+        if dd_pct < 0.05:
+            dd_pct = 0.05  # floor to avoid division by tiny numbers
+        return round(ret_pct / dd_pct, 1)
+
+    temp_rr = _rr_ratio(temp_m["total_return_pct"], temp_m["max_drawdown_pct"])
+    reg_rr = _rr_ratio(reg_m["total_return_pct"], reg_m["max_drawdown_pct"])
+    lump_rr = _rr_ratio(lump_m["total_return_pct"], lump_m["max_drawdown_pct"])
+
+    # ── Zone-by-zone investment breakdown ─────────────────────────────────
+    zone_stats = {
+        "cold": {"label": "🧊 低估 (0-40°C)", "months": 0, "invested": 0.0, "base_would_be": 0.0},
+        "normal": {"label": "🌡️ 适中 (40-60°C)", "months": 0, "invested": 0.0, "base_would_be": 0.0},
+        "hot": {"label": "🔥 偏贵 (60-100°C)", "months": 0, "invested": 0.0, "base_would_be": 0.0},
+    }
+
+    max_cash_pool = 0.0
+    peak_cash_pool_date = None
+
+    for rec in records:
+        temp = rec.get("temperature", 50)
+        invested = rec.get("invested", base_monthly)
+
+        if temp < 40:
+            zone_stats["cold"]["months"] += 1
+            zone_stats["cold"]["invested"] += invested
+            zone_stats["cold"]["base_would_be"] += base_monthly
+        elif temp < 60:
+            zone_stats["normal"]["months"] += 1
+            zone_stats["normal"]["invested"] += invested
+            zone_stats["normal"]["base_would_be"] += base_monthly
+        else:
+            zone_stats["hot"]["months"] += 1
+            zone_stats["hot"]["invested"] += invested
+            zone_stats["hot"]["base_would_be"] += base_monthly
+
+        cp = rec.get("cash_pool", 0)
+        if cp > max_cash_pool:
+            max_cash_pool = cp
+            peak_cash_pool_date = rec["date"]
+
+    # Total saved during hot periods
+    hot_saved = zone_stats["hot"]["base_would_be"] - zone_stats["hot"]["invested"]
+    cold_extra = zone_stats["cold"]["invested"] - zone_stats["cold"]["base_would_be"]
+
+    # ── Caveat analysis ───────────────────────────────────────────────────
+    # Temperature DCA underperforms in sustained bull markets (few months > 60°C)
+    hot_months_pct = zone_stats["hot"]["months"] / len(records) * 100 if records else 0
+    cold_months_pct = zone_stats["cold"]["months"] / len(records) * 100 if records else 0
+
+    if hot_months_pct < 10 and lump_m["total_return_pct"] > temp_m["total_return_pct"]:
+        caveat = (
+            "⚠️ 本次回测区间内市场大部分时间估值合理，温度变化较小。"
+            "在单边持续牛市中（如2020年），一次性买入的收益通常最高——"
+            "温度定投的价值在震荡市和熊市中体现得更明显。"
+        )
+    elif lump_m["total_return_pct"] > temp_m["total_return_pct"]:
+        caveat = (
+            "⚠️ 本次回测中一次性买入收益领先，说明该区间市场整体向上。"
+            "温度定投通过少投避开了高估值区间，但也会因此错过部分上涨——"
+            "这是策略的 trade-off：用一部分上涨空间换取更小的回撤。"
+        )
+    elif cold_months_pct > 30:
+        caveat = (
+            "💡 本次回测区间内含较多低估月份，温度定投在低位持续加仓，"
+            "这是其超额收益的主要来源。在估值长期偏高的市场中，"
+            "策略的加仓机会较少，超额收益会收窄。"
+        )
+    else:
+        caveat = (
+            "💡 温度定投的核心优势在于：高估值时少投（避风险）+ 低估值时多投（攒筹码）。"
+            "在单边急涨的牛市中它可能跑输一次性买入，但在震荡市和熊市中"
+            "通常能提供更好的风险调整后收益。"
+        )
+
+    return {
+        "return_drawdown_ratio": {
+            "temperature_dca": temp_rr,
+            "regular_dca": reg_rr,
+            "lump_sum": lump_rr,
+            "interpretation": "每承受 1% 的最大回撤，能换来多少百分点的总收益。数值越高，说明策略的'痛苦回报比'越优。",
+        },
+        "zone_breakdown": {
+            "cold": {**zone_stats["cold"], "extra_vs_base": round(cold_extra, 2)},
+            "normal": {**zone_stats["normal"], "extra_vs_base": round(zone_stats["normal"]["invested"] - zone_stats["normal"]["base_would_be"], 2)},
+            "hot": {**zone_stats["hot"], "extra_vs_base": round(hot_saved, 2)},
+        },
+        "cash_pool": {
+            "max_balance": round(max_cash_pool, 2),
+            "peak_date": peak_cash_pool_date.strftime("%Y-%m") if peak_cash_pool_date and hasattr(peak_cash_pool_date, "strftime") else str(peak_cash_pool_date)[:7] if peak_cash_pool_date else "—",
+            "total_saved_in_hot": round(hot_saved, 2),
+            "total_extra_in_cold": round(cold_extra, 2),
+        },
+        "caveat": caveat,
+    }
+
+
+def _build_yearly_breakdown(
+    temp_dca: dict,
+    monthly_df: pd.DataFrame,
+    base_monthly: float,
+) -> list[dict]:
+    """Build yearly summary from temperature DCA monthly records."""
+    records = temp_dca["records"]
+    if not records:
+        return []
+
+    yearly = []
+    current_year = None
+    year_invested = 0.0
+    year_start_shares = 0.0
+    year_start_value = 0.0
+    year_end_value = 0.0
+    year_temps = []
+
+    for i, rec in enumerate(records):
+        rec_year = rec["date"].year if hasattr(rec["date"], "year") else pd.Timestamp(rec["date"]).year
+
+        if current_year is None:
+            current_year = rec_year
+            year_start_value = base_monthly  # first month
+            year_start_shares = 0.0
+
+        if rec_year != current_year:
+            # Close out previous year
+            yearly.append({
+                "year": current_year,
+                "invested": round(year_invested, 2),
+                "end_value": round(year_end_value, 2),
+                "avg_temp": round(sum(year_temps) / len(year_temps), 1) if year_temps else 50.0,
+                "avg_multiplier": round(year_invested / (base_monthly * len(year_temps)), 2) if year_temps else 1.0,
+            })
+            current_year = rec_year
+            year_invested = 0.0
+            year_start_value = year_end_value
+            year_temps = []
+
+        year_invested += rec["invested"]
+        year_end_value = rec["portfolio_value"]
+        year_temps.append(rec.get("temperature", 50.0))
+
+    # Final year
+    if year_invested > 0:
+        yearly.append({
+            "year": current_year,
+            "invested": round(year_invested, 2),
+            "end_value": round(year_end_value, 2),
+            "avg_temp": round(sum(year_temps) / len(year_temps), 1) if year_temps else 50.0,
+            "avg_multiplier": round(year_invested / (base_monthly * len(year_temps)), 2) if year_temps else 1.0,
+        })
+
+    return yearly

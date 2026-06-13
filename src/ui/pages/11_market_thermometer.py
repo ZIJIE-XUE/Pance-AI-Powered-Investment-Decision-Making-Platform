@@ -123,11 +123,19 @@ def _render_single_card(idx: dict):
         # Progress bar
         _render_temp_bar(pct_val, color)
 
+        # Build detail text (handle None scores gracefully)
+        detail_parts = []
+        if pe_score is not None:
+            detail_parts.append(f"PE={pe_score:.0f}°")
+        if ma_score is not None:
+            detail_parts.append(f"MA={ma_score:.0f}°")
+        detail_text = " · ".join(detail_parts) if detail_parts else "仅PE估值"
+
         st.markdown(
             f"<div style='font-size:0.75em;color:#888;margin-top:2px'>"
             f"综合温度 <b>{pct_val:.0f}°C</b>"
             f"<span style='font-size:0.65em;color:#bbb;margin-left:4px'>"
-            f"(PE={pe_score:.0f}° · MA={ma_score:.0f}°)</span>"
+            f"({detail_text})</span>"
             f"</div>",
             unsafe_allow_html=True,
         )

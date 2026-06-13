@@ -15,6 +15,10 @@ WORKFLOW_STEPS = [
     ("06_report",             "📄 报告下载",     "report_metadata"),
 ]
 
+FLAGSHIP = [
+    ("12_temperature_dca", "🌡️ 智能温度定投"),
+]
+
 DASHBOARD = [
     ("08_market_dashboard",   "📊 市场仪表盘"),
     ("09_etf_comparison",     "📈 ETF对比"),
@@ -75,6 +79,31 @@ def render_sidebar():
             st.markdown(html, unsafe_allow_html=True)
         else:
             st.info("👈 请先填写基本信息")
+
+        st.markdown("---")
+
+        # ── Module 0: Temperature DCA (Flagship) ──────────────────────────
+        st.markdown("""
+            <div style="background:linear-gradient(135deg, #FF6D00, #E65100);
+                        padding:12px 16px;
+                        border-radius:10px;
+                        margin-bottom:6px;
+                        box-shadow:0 2px 10px rgba(230,81,0,0.2)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="color:#fff;font-weight:700;font-size:1em">🌡️ 温度定投系统</span>
+                    <span style="background:rgba(255,255,255,0.25);color:#fff;font-size:0.65em;
+                                 padding:2px 8px;border-radius:10px;font-weight:600;
+                                 letter-spacing:0.5px">旗舰</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        for page_file, label in FLAGSHIP:
+            st.page_link(
+                f"pages/{page_file}.py",
+                label=label,
+                use_container_width=True,
+            )
 
         st.markdown("---")
 
@@ -144,6 +173,11 @@ def render_sidebar():
                 - 宏观指标（黄金、原油、国债收益率、汇率、VIX）
                 - ETF涨跌排行
                 - 数据每5分钟缓存，点击刷新按钮获取最新
+
+                **🌡️ 温度定投系统（旗舰功能）**
+                - 基于市场估值温度动态调整每月定投金额
+                - 历史数据回测验证，三种策略对比（温度定投 vs 普通定投 vs 一次性买入）
+                - 实时温度 + 当前投资建议
 
                 **🛠️ 独立工具**
                 - 定投计算器：随时可用，无需前置步骤

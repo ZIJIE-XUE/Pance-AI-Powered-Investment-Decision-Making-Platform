@@ -72,7 +72,8 @@ def _standardize_df(df: pd.DataFrame, date_col: str, close_col: str) -> pd.DataF
 def _fetch_china_index(symbol: str, days: int = 45) -> Optional[pd.DataFrame]:
     """Fetch A-share index history via AKShare.
 
-    Uses ak.index_zh_a_hist() which returns daily OHLCV data.
+    Tries Sina source first (stock_zh_index_daily — more reliable),
+    then falls back to EastMoney (index_zh_a_hist).
 
     Args:
         symbol: Index code (e.g. '000300' for CSI 300).
@@ -87,6 +88,34 @@ def _fetch_china_index(symbol: str, days: int = 45) -> Optional[pd.DataFrame]:
         logger.warning("akshare_not_installed")
         return None
 
+    # ── Try Sina first (more reliable, works without EastMoney push) ──────
+    sina_symbol = f"sh{symbol}" if symbol != "399006" else f"sz{symbol}"
+    try:
+        df = ak.stock_zh_index_daily(symbol=sina_symbol)
+        if df is not None and not df.empty:
+            # Normalise column names (Sina returns Chinese headers)
+            rename_map = {}
+            for col in df.columns:
+                if col in ("date", "日期"):
+                    rename_map[col] = "date"
+                elif col in ("close", "收盘"):
+                    rename_map[col] = "close"
+            if "date" not in rename_map and "close" not in rename_map:
+                cols = list(df.columns)
+                if len(cols) >= 4:
+                    rename_map = {cols[0]: "date", cols[3]: "close"}
+
+            if rename_map:
+                df = df.rename(columns=rename_map)
+                result = _standardize_df(df, date_col="date", close_col="close")
+                cutoff = datetime.now() - timedelta(days=days)
+                result = result[result["date"] >= cutoff]
+                if not result.empty:
+                    return result
+    except Exception as e:
+        logger.warning("china_index_sina_failed", symbol=sina_symbol, error=str(e)[:100])
+
+    # ── Fallback: EastMoney ───────────────────────────────────────────────
     try:
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
@@ -249,27 +278,21 @@ def fetch_index_quotes() -> list[dict]:
 def fetch_akshare_changes() -> dict[str, dict]:
     """Fetch change% and sparklines from AKShare for indices Yahoo only gives 1 data point.
 
-    Designed for the history tier (cached 1 hour). Slow (~50s for 3 tickers in parallel).
+    Designed for the history tier (cached 1 hour).
+    Uses _fetch_china_index (Sina first, EastMoney fallback) for reliability.
     Returns dict mapping ticker -> {change, change_pct, sparkline}.
     """
     NEED_AKSHARE = ["399006", "000688", "000905"]
 
     def _fetch_one(symbol: str) -> tuple[str, float, float, list[float]]:
-        from datetime import datetime, timedelta
         try:
-            import akshare as ak
-            end = datetime.now().strftime("%Y%m%d")
-            start = (datetime.now() - timedelta(days=60)).strftime("%Y%m%d")
-            df = ak.index_zh_a_hist(
-                symbol=symbol, period="daily",
-                start_date=start, end_date=end,
-            )
+            df = _fetch_china_index(symbol, days=60)
             if df is not None and not df.empty and len(df) >= 2:
-                closes = pd.to_numeric(df["收盘"], errors="coerce").dropna()
-                current = float(closes.iloc[-1])
-                previous = float(closes.iloc[-2])
+                closes = df["close"].tolist()
+                current = closes[-1]
+                previous = closes[-2]
                 change, change_pct = _compute_change(current, previous)
-                sparkline = closes.tolist()[-30:] if len(closes) >= 30 else closes.tolist()
+                sparkline = closes[-30:] if len(closes) >= 30 else closes
                 return (symbol, round(change, 4), round(change_pct, 2),
                         [round(float(v), 4) for v in sparkline])
         except Exception:
@@ -278,16 +301,14 @@ def fetch_akshare_changes() -> dict[str, dict]:
 
     ticker_map = {"399006": "399006", "000688": "000688", "000905": "000905"}
     results = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = {executor.submit(_fetch_one, s): s for s in NEED_AKSHARE}
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                symbol, change, change_pct, sparkline = future.result(timeout=30)
-                results[ticker_map[symbol]] = {
-                    "change": change, "change_pct": change_pct, "sparkline": sparkline,
-                }
-            except Exception:
-                pass
+    for symbol in NEED_AKSHARE:
+        try:
+            sym, change, change_pct, sparkline = _fetch_one(symbol)
+            results[ticker_map[sym]] = {
+                "change": change, "change_pct": change_pct, "sparkline": sparkline,
+            }
+        except Exception:
+            pass
     return results
 
 
