@@ -75,6 +75,17 @@ def _fetch_signal_validation(index_name: str, cache_version: str = _CACHE_VERSIO
     return engine.validate_temperature_signal(index_name=index_name, years=10)
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def _fetch_walk_forward(index_name: str, train_years: int, test_years: int, cache_version: str = _CACHE_VERSION) -> dict:
+    """Run walk-forward validation. Cached 24h."""
+    return engine.walk_forward_validation(
+        index_name=index_name,
+        train_years=train_years,
+        test_years=test_years,
+        base_monthly=5000.0,
+    )
+
+
 # ── Page config ──────────────────────────────────────────────────────────────
 
 def _inject_css():
@@ -722,6 +733,191 @@ def _render_regime_decomposition(backtest: dict):
     )
 
 
+# ── Walk-Forward validation ────────────────────────────────────────────────────
+
+def _render_walk_forward(config: dict):
+    """Render walk-forward validation: train/test split + grid search + OOS test.
+
+    Gold-standard test for overfitting: optimise on train, verify on test.
+    """
+    st.markdown("---")
+    st.markdown("### 🚶 Walk-Forward 样本外检验")
+
+    st.markdown(
+        '<p style="font-size:0.85em;color:#888;margin-bottom:12px">'
+        '将历史数据拆分为训练窗（优化参数）和测试窗（只看一遍），'
+        '测试策略是否在从未见过的数据上仍然有效。'
+        '这是区分"真正有用的策略"和"回测过拟合"的黄金标准。</p>',
+        unsafe_allow_html=True,
+    )
+
+    # Compute appropriate split for the selected years
+    backtest_years = config["years"]
+    if backtest_years >= 7:
+        train_years = max(4, backtest_years - 3)
+        test_years = backtest_years - train_years
+    elif backtest_years >= 5:
+        train_years = 3
+        test_years = backtest_years - 3
+    else:
+        train_years = 2
+        test_years = backtest_years - 2
+
+    if test_years < 1:
+        st.info("回测年限太短，无法进行有意义的 Walk-Forward 检验（至少需要2年训练 + 1年测试）。请增加回测年限。")
+        return
+
+    with st.spinner(f"正在运行 Walk-Forward 检验...（{train_years}年训练 → {test_years}年测试，首次约 20-30 秒）"):
+        wf = _fetch_walk_forward(config["index_name"], train_years, test_years)
+
+    if "error" in wf:
+        st.warning(f"⚠️ Walk-Forward 检验暂不可用：{wf['error']}")
+        return
+
+    opt = wf["optimization"]
+    dq = wf["data_quality"]
+    train = wf["train_performance"]
+    test = wf["test_performance"]
+    deg = wf["degradation"]
+
+    # ── Top row: two-window comparison ─────────────────────────────────────
+    tw_col, tw_label, ts_col = st.columns([5, 1, 5])
+
+    with tw_col:
+        st.markdown(
+            f"<div style='padding:16px;background:#FFF8E1;border-radius:10px;"
+            f"border:2px solid #FF9800;text-align:center'>"
+            f"<div style='font-size:0.85em;color:#E65100;font-weight:600;margin-bottom:8px'>"
+            f"🔧 训练窗 · {train_years}年</div>"
+            f"<div style='font-size:0.7em;color:#888;margin-bottom:10px'>"
+            f"{dq['train_window']['start']} → {dq['train_window']['end']} · "
+            f"{dq['train_months']} 个月</div>"
+            f"<div style='font-size:0.78em;color:#555;margin-bottom:10px'>"
+            f"网格搜索 {opt['search_space']['total_combos']} 种组合，"
+            f"最优：PE {opt['best_pe_weight']:.0%} + {opt['best_strategy_label']}</div>"
+            f"<div style='font-size:1.15em;font-weight:700'>"
+            f"温度: {train['temp_dca']['cagr_pct']}%</div>"
+            f"<div style='font-size:0.8em;color:#888'>"
+            f"普通: {train['regular_dca']['cagr_pct']}% · "
+            f"超额: <b style='color:#E65100'>{'+' if train['excess_cagr'] > 0 else ''}{train['excess_cagr']}%</b></div>"
+            f"<div style='font-size:0.8em;color:#888'>"
+            f"夏普: {train['temp_dca']['sharpe_ratio']}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    with tw_label:
+        st.markdown(
+            '<div style="text-align:center;font-size:1.5em;padding-top:40px">→</div>',
+            unsafe_allow_html=True,
+        )
+
+    with ts_col:
+        excess_color = "#27ae60" if test["excess_cagr"] > 0 else "#e74c3c"
+        st.markdown(
+            f"<div style='padding:16px;background:#E8F5E9;border-radius:10px;"
+            f"border:2px solid #4CAF50;text-align:center'>"
+            f"<div style='font-size:0.85em;color:#2E7D32;font-weight:600;margin-bottom:8px'>"
+            f"👁️ 测试窗 · {test_years}年（样本外）</div>"
+            f"<div style='font-size:0.7em;color:#888;margin-bottom:10px'>"
+            f"{dq['test_window']['start']} → {dq['test_window']['end']} · "
+            f"{dq['test_months']} 个月 · 参数锁定，未接触</div>"
+            f"<div style='font-size:0.78em;color:#555;margin-bottom:10px'>"
+            f"PE {opt['best_pe_weight']:.0%} · {opt['best_strategy_label']} · 只看一遍</div>"
+            f"<div style='font-size:1.15em;font-weight:700'>"
+            f"温度: {test['temp_dca']['cagr_pct']}%</div>"
+            f"<div style='font-size:0.8em;color:#888'>"
+            f"普通: {test['regular_dca']['cagr_pct']}% · "
+            f"超额: <b style='color:{excess_color}'>{'+' if test['excess_cagr'] > 0 else ''}{test['excess_cagr']}%</b></div>"
+            f"<div style='font-size:0.8em;color:#888'>"
+            f"夏普: {test['temp_dca']['sharpe_ratio']} "
+            f"(变动 {'+' if deg['sharpe_drop'] >= 0 else ''}{deg['sharpe_drop']})</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── Grid search heatmap ────────────────────────────────────────────────
+    st.markdown("")
+    st.markdown("#### 📊 参数优化网格")
+
+    grid = opt["grid_results"]
+    strategies = ["激进", "适中", "保守"]
+    weights = sorted(set(g["pe_weight"] for g in grid))
+
+    # Build heatmap data
+    import plotly.graph_objects as go
+
+    heatmap_data = []
+    for strat_label in strategies:
+        row = []
+        for pw in weights:
+            match = [g for g in grid if g["strategy_label"] == strat_label and g["pe_weight"] == pw]
+            if match:
+                row.append(match[0]["temp_sharpe"])
+            else:
+                row.append(None)
+        heatmap_data.append(row)
+
+    # Find best cell
+    best_pw = opt["best_pe_weight"]
+    best_sl = opt["best_strategy_label"]
+    annotations = []
+    for si, sl in enumerate(strategies):
+        for wi, pw in enumerate(weights):
+            val = heatmap_data[si][wi]
+            if val is None:
+                continue
+            text = f"{val:.2f}"
+            if pw == best_pw and sl == best_sl:
+                text = f"⭐{val:.2f}"
+            annotations.append(dict(
+                x=wi, y=si, text=text, showarrow=False,
+                font=dict(color="#fff" if val > 1.0 else "#555", size=11,
+                         family="monospace"),
+            ))
+
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_data,
+        x=[f"{w:.0%}" for w in weights],
+        y=strategies,
+        colorscale=[
+            [0.0, "#f44336"],
+            [0.25, "#FF9800"],
+            [0.5, "#FFEB3B"],
+            [0.75, "#8BC34A"],
+            [1.0, "#2E7D32"],
+        ],
+        zmin=0,
+        zmax=max(max(row) for row in heatmap_data if any(v is not None for v in row)) * 1.1,
+        text=[[f"{v:.2f}" if v else "" for v in row] for row in heatmap_data],
+        texttemplate="%{text}",
+        textfont=dict(size=11, family="monospace"),
+        hovertemplate="PE权重=%{x}<br>策略=%{y}<br>夏普=%{z:.2f}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        height=220,
+        margin=dict(l=20, r=20, t=30, b=10),
+        xaxis_title="PE 权重",
+        yaxis_title="",
+        plot_bgcolor="white",
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    # ── Assessment ─────────────────────────────────────────────────────────
+    st.info(deg["assessment"])
+
+    st.markdown(
+        '<div style="font-size:0.8em;color:#888;margin-top:4px">'
+        '💡 <b>方法论</b>：Walk-Forward 是量化策略验证的黄金标准。'
+        '训练窗内可自由探索参数，测试窗只看一次。'
+        '若样本外仍然有效，则策略不是过拟合的产物——这正是学术论文和机构级策略验收的核心方法。'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ── Behavioral finance framework ───────────────────────────────────────────────
 
 def _render_behavioral_finance():
@@ -984,6 +1180,9 @@ def show():
 
     # Step 5: Signal validation — empirical foundation
     _render_signal_validation(config)
+
+    # Step 5.5: Walk-Forward validation — out-of-sample test
+    _render_walk_forward(config)
 
     # Step 6: Metrics comparison
     _render_metrics(backtest)

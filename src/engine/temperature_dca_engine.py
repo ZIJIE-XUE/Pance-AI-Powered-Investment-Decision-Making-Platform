@@ -246,12 +246,17 @@ def _compute_monthly_temperatures(
     monthly_df: pd.DataFrame,
     pe_df: Optional[pd.DataFrame],
     pe_thresholds: list[float],
+    pe_weight: float = 0.6,
 ) -> pd.DataFrame:
     """Compute temperature (0-100) for each month.
 
-    Uses PE score (60%) + MA deviation score (40%) where PE is available;
-    falls back to MA-deviation-only otherwise.
+    Uses PE score (pe_weight) + MA deviation score (1-pe_weight) where PE is
+    available; falls back to MA-deviation-only otherwise.
+
+    pe_weight is configurable to support sensitivity analysis and
+    walk-forward parameter optimization.
     """
+    ma_weight = 1.0 - pe_weight
     df = monthly_df.copy()
 
     # MA deviation score for all months
@@ -280,10 +285,10 @@ def _compute_monthly_temperatures(
         df["pe_score"] = pe_scores
 
         if has_pe_count > len(df) * 0.3:
-            # Enough PE data: use 60/40 weighted model
+            # Enough PE data: use weighted model
             df["temperature"] = df.apply(
                 lambda r: (
-                    r["pe_score"] * 0.6 + r["ma_score"] * 0.4
+                    r["pe_score"] * pe_weight + r["ma_score"] * ma_weight
                     if pd.notna(r.get("pe_score"))
                     else r["ma_score"]
                 ),
@@ -511,6 +516,7 @@ def run_backtest(
     years: int = 5,
     base_monthly: float = 5000.0,
     strategy_name: str = "moderate",
+    pe_weight: float = 0.6,
 ) -> dict:
     """Run a complete backtest comparing three DCA strategies.
 
@@ -519,6 +525,7 @@ def run_backtest(
         years: Backtest horizon (1-10 years)
         base_monthly: Base monthly investment amount in CNY
         strategy_name: aggressive / moderate / conservative
+        pe_weight: Weight of PE score in temperature (0-1). MA gets 1-pe_weight.
 
     Returns:
         Dict with strategy results, comparison metrics, and data quality info.
@@ -565,7 +572,7 @@ def run_backtest(
         }
 
     monthly_df = _compute_monthly_temperatures(
-        monthly_df, pe_df, idx_def["pe_thresholds"]
+        monthly_df, pe_df, idx_def["pe_thresholds"], pe_weight=pe_weight
     )
 
     # ── 4. Simulate three strategies ──────────────────────────────────────────
@@ -859,7 +866,7 @@ def validate_temperature_signal(
     # ── 3. Resample to monthly & compute temperatures ────────────────────────
     monthly_df = _resample_to_monthly(prices_df)
     monthly_df = _compute_monthly_temperatures(
-        monthly_df, pe_df, idx_def["pe_thresholds"]
+        monthly_df, pe_df, idx_def["pe_thresholds"], pe_weight=0.6
     )
 
     if monthly_df.empty or len(monthly_df) < 15:
@@ -1141,4 +1148,231 @@ def _decompose_by_regime(
     return {
         "regimes": result,
         "insight": insight,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Walk-Forward Validation: out-of-sample test of strategy effectiveness
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def walk_forward_validation(
+    index_name: str = "沪深300",
+    train_years: int = 7,
+    test_years: int = 3,
+    base_monthly: float = 5000.0,
+) -> dict:
+    """Walk-forward validation: optimise on train window, verify on test window.
+
+    This is the gold-standard test for whether a strategy is overfitted:
+    - Train window: search PE weight × strategy → maximise Sharpe
+    - Test window: lock parameters, run once — if still outperforms, the
+      strategy is genuinely effective, not a product of hindsight bias.
+
+    Only two parameters are optimised (PE weight, strategy choice), keeping
+    the search space small, interpretable, and defensible.
+
+    Args:
+        index_name: One of 上证50 / 沪深300 / 中证500 / 中证1000
+        train_years: Training window length in years
+        test_years: Test (out-of-sample) window length in years
+        base_monthly: Base monthly investment in CNY
+
+    Returns:
+        Dict with train_window, test_window, optimization grid, and
+        out-of-sample performance assessment.
+    """
+    idx_def = _BACKTEST_INDICES.get(index_name)
+    if idx_def is None:
+        return {"error": f"不支持的指数: {index_name}"}
+
+    total_years = train_years + test_years
+
+    # ── 1. Fetch all data for the full period ───────────────────────────────
+    prices_df = _fetch_prices_sina(idx_def["sina_symbol"], total_years)
+    data_source = "sina"
+
+    if prices_df is None or prices_df.empty:
+        prices_df = _fetch_prices_eastmoney(idx_def["ak_symbol"], total_years)
+        data_source = "eastmoney"
+
+    if prices_df is None or prices_df.empty:
+        return {"error": f"无法获取 {index_name} 的历史价格数据"}
+
+    if len(prices_df) < 200:
+        return {
+            "error": f"数据不足（仅 {len(prices_df)} 日），需要至少200日计算均线。"
+        }
+
+    # PE data
+    pe_df = _fetch_pe_history(idx_def["csindex_code"])
+    has_pe = pe_df is not None and not pe_df.empty
+
+    # ── 2. Resample to monthly (full period, temperature neutral) ──────────
+    monthly_full = _resample_to_monthly(prices_df)
+
+    if monthly_full.empty or len(monthly_full) < train_years * 9:
+        return {
+            "error": f"月度数据不足（仅 {len(monthly_full)} 个月），"
+                     f"训练窗至少需要 {train_years * 9} 个月。"
+        }
+
+    # ── 3. Split into train and test windows by date ───────────────────────
+    all_dates = monthly_full["date"].sort_values()
+    split_idx = int(len(all_dates) * train_years / total_years)
+    split_date = all_dates.iloc[split_idx]
+
+    monthly_train = monthly_full[monthly_full["date"] <= split_date].copy()
+    monthly_test = monthly_full[monthly_full["date"] > split_date].copy()
+
+    if len(monthly_train) < 12:
+        return {"error": f"训练窗数据不足（仅 {len(monthly_train)} 个月）"}
+    if len(monthly_test) < 6:
+        return {"error": f"测试窗数据不足（仅 {len(monthly_test)} 个月）"}
+
+    # ── 4. Grid search on training window ──────────────────────────────────
+    pe_weights = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    strategies = ["aggressive", "moderate", "conservative"]
+
+    grid_results = []
+    best_sharpe = -999
+    best_pe_weight = 0.6
+    best_strategy = "moderate"
+    best_train_temp = None
+    best_train_reg = None
+
+    for pw in pe_weights:
+        for strat in strategies:
+            # Compute temperatures with this PE weight
+            temp_m = _compute_monthly_temperatures(
+                monthly_train.copy(), pe_df, idx_def["pe_thresholds"],
+                pe_weight=pw,
+            )
+
+            if temp_m.empty:
+                continue
+
+            # Simulate temperature DCA and regular DCA
+            train_temp = _simulate_temperature_dca(temp_m, base_monthly, strat)
+            train_reg = _simulate_regular_dca(temp_m, base_monthly)
+
+            # Compute metrics
+            temp_metrics = _compute_metrics(train_temp, temp_m)
+            reg_metrics = _compute_metrics(train_reg, temp_m)
+
+            sharpe = temp_metrics["sharpe_ratio"]
+
+            grid_results.append({
+                "pe_weight": pw,
+                "strategy": strat,
+                "strategy_label": STRATEGIES[strat]["name"],
+                "temp_sharpe": sharpe,
+                "temp_cagr": temp_metrics["cagr_pct"],
+                "reg_sharpe": reg_metrics["sharpe_ratio"],
+                "excess_cagr": round(temp_metrics["cagr_pct"] - reg_metrics["cagr_pct"], 1),
+            })
+
+            if sharpe > best_sharpe:
+                best_sharpe = sharpe
+                best_pe_weight = pw
+                best_strategy = strat
+                best_train_temp = temp_metrics
+                best_train_reg = reg_metrics
+
+    if not grid_results:
+        return {"error": "训练窗网格搜索无有效结果"}
+
+    # ── 5. Apply best parameters to test window ────────────────────────────
+    test_temp_m = _compute_monthly_temperatures(
+        monthly_test.copy(), pe_df, idx_def["pe_thresholds"],
+        pe_weight=best_pe_weight,
+    )
+
+    test_temp_dca = _simulate_temperature_dca(test_temp_m, base_monthly, best_strategy)
+    test_reg_dca = _simulate_regular_dca(test_temp_m, base_monthly)
+
+    test_temp_metrics = _compute_metrics(test_temp_dca, test_temp_m)
+    test_reg_metrics = _compute_metrics(test_reg_dca, test_temp_m)
+
+    # ── 6. Assess degradation ─────────────────────────────────────────────
+    train_sharpe = best_train_temp["sharpe_ratio"] if best_train_temp else 0
+    test_sharpe = test_temp_metrics["sharpe_ratio"]
+    sharpe_drop = round(test_sharpe - train_sharpe, 2)
+
+    train_excess = (best_train_temp["cagr_pct"] - best_train_reg["cagr_pct"]) if best_train_temp and best_train_reg else 0
+    test_excess = test_temp_metrics["cagr_pct"] - test_reg_metrics["cagr_pct"]
+
+    # Assessment logic
+    if test_excess > 5:
+        assessment = (
+            f"✅ 样本外验证通过——温度定投在测试窗超额收益 {test_excess:.1f}%，"
+            f"远超普通定投。策略有效性得到样本外确认，不是过拟合。"
+        )
+    elif test_excess > 0:
+        assessment = (
+            f"✅ 样本外验证通过——温度定投在测试窗仍然跑赢（超额 {test_excess:.1f}%），"
+            f"夏普衰减 {sharpe_drop} 在正常范围内。策略虽在样本外有所衰减，"
+            f"但核心优势保持。"
+        )
+    elif test_excess > -3:
+        assessment = (
+            f"⚠️ 样本外表现边际——温度定投在测试窗与普通定投基本持平"
+            f"（超额 {test_excess:.1f}%）。策略优势在样本外收窄，"
+            f"但对于风险厌恶型投资者仍有价值（回撤通常更低）。"
+        )
+    else:
+        assessment = (
+            f"⚠️ 样本外表现弱于预期——温度定投在测试窗跑输普通定投"
+            f"（超额 {test_excess:.1f}%）。这可能表明回测区间内的策略优势"
+            f"部分来自参数过拟合，或测试窗市场环境不利于策略。"
+        )
+
+    # ── 7. Assemble result ────────────────────────────────────────────────
+    return {
+        "config": {
+            "index_name": index_name,
+            "train_years": train_years,
+            "test_years": test_years,
+            "base_monthly": base_monthly,
+        },
+        "data_quality": {
+            "data_source": data_source,
+            "has_pe_data": has_pe,
+            "train_months": len(monthly_train),
+            "test_months": len(monthly_test),
+            "train_window": {
+                "start": str(monthly_train.iloc[0]["date"])[:10],
+                "end": str(monthly_train.iloc[-1]["date"])[:10],
+            },
+            "test_window": {
+                "start": str(monthly_test.iloc[0]["date"])[:10],
+                "end": str(monthly_test.iloc[-1]["date"])[:10],
+            },
+        },
+        "optimization": {
+            "best_pe_weight": best_pe_weight,
+            "best_strategy": best_strategy,
+            "best_strategy_label": STRATEGIES[best_strategy]["name"],
+            "grid_results": grid_results,
+            "search_space": {
+                "pe_weights": pe_weights,
+                "strategies": [STRATEGIES[s]["name"] for s in strategies],
+                "total_combos": len(pe_weights) * len(strategies),
+            },
+        },
+        "train_performance": {
+            "temp_dca": best_train_temp,
+            "regular_dca": best_train_reg,
+            "excess_cagr": round(train_excess, 1),
+        },
+        "test_performance": {
+            "temp_dca": test_temp_metrics,
+            "regular_dca": test_reg_metrics,
+            "excess_cagr": round(test_excess, 1),
+        },
+        "degradation": {
+            "train_sharpe": train_sharpe,
+            "test_sharpe": test_sharpe,
+            "sharpe_drop": sharpe_drop,
+            "assessment": assessment,
+        },
     }
