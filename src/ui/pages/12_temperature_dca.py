@@ -8,6 +8,7 @@ Combines market temperature signals with dollar-cost-averaging:
 
 from datetime import datetime
 
+import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -35,7 +36,7 @@ ZONE_COLORS = {
 
 # ── Data loading (cached) ────────────────────────────────────────────────────
 
-_CACHE_VERSION = "v2"  # bump to invalidate stale caches after engine changes
+_CACHE_VERSION = "v3"  # bump to invalidate stale caches after engine changes (added regime_analysis + signal validation)
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def _fetch_backtest_data(
@@ -66,6 +67,12 @@ def _fetch_current_temperature() -> dict:
         return fetch_market_temperature(years=5)
     except Exception:
         return {"indices": [], "overall": None, "timestamp": datetime.now()}
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _fetch_signal_validation(index_name: str, cache_version: str = _CACHE_VERSION) -> dict:
+    """Run signal validation. Cached 24h."""
+    return engine.validate_temperature_signal(index_name=index_name, years=10)
 
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -473,6 +480,335 @@ def _render_yearly_breakdown(backtest: dict, config: dict):
     )
 
 
+# ── Signal Validation ──────────────────────────────────────────────────────────
+
+def _render_signal_validation(config: dict):
+    """Render signal validation: scatter plot + correlation + bucket analysis.
+
+    Tests whether market temperature actually predicts forward returns.
+    This is the empirical foundation that justifies the entire strategy.
+    """
+    st.markdown("---")
+    st.markdown("### 🔬 信号验证：温度能否预测未来收益？")
+
+    st.markdown(
+        '<p style="font-size:0.85em;color:#888;margin-bottom:12px">'
+        '如果温度信号有效，低温应该对应未来较高的收益（负相关）。'
+        '这是整个温度定投策略的实证基础。</p>',
+        unsafe_allow_html=True,
+    )
+
+    with st.spinner("正在运行信号验证...（首次约 5-10 秒）"):
+        validation = _fetch_signal_validation(config["index_name"])
+
+    if "error" in validation:
+        st.warning(f"⚠️ 信号验证暂不可用：{validation['error']}")
+        return
+
+    corr = validation["correlation"]
+    dq = validation["data_quality"]
+
+    # ── Top row: scatter plot + stats ──────────────────────────────────────
+    chart_col, stat_col = st.columns([3, 2])
+
+    with chart_col:
+        scatter_data = validation["scatter_data"]
+        reg = validation["regression"]
+
+        # Build scatter plot with regression line
+        fig = go.Figure()
+
+        # Color points by temperature zone
+        temps = [d["temperature"] for d in scatter_data]
+        returns = [d["forward_12m_return_pct"] for d in scatter_data]
+
+        point_colors = []
+        for t in temps:
+            if t >= 80:
+                point_colors.append("#f44336")
+            elif t >= 60:
+                point_colors.append("#FF9800")
+            elif t >= 40:
+                point_colors.append("#9E9E9E")
+            elif t >= 20:
+                point_colors.append("#64B5F6")
+            else:
+                point_colors.append("#2196F3")
+
+        fig.add_trace(go.Scatter(
+            x=temps,
+            y=returns,
+            mode="markers",
+            marker=dict(size=9, color=point_colors, opacity=0.55, line=dict(width=0.5, color="#fff")),
+            name="月度数据点",
+            hovertemplate="温度: %{x:.0f}°C<br>未来12月收益: %{y:.1f}%<extra></extra>",
+        ))
+
+        # Regression line
+        x_range = np.linspace(min(temps) - 2, max(temps) + 2, 100)
+        y_line = reg["slope"] * x_range + reg["intercept"]
+        fig.add_trace(go.Scatter(
+            x=x_range.tolist(),
+            y=y_line.tolist(),
+            mode="lines",
+            line=dict(color="#E65100", width=2, dash="dash"),
+            name=f"回归线 (r={corr['pearson_r']:.3f})",
+            hovertemplate="温度: %{x:.0f}°C<br>预测收益: %{y:.1f}%<extra></extra>",
+        ))
+
+        # Zero-return reference line
+        fig.add_hline(y=0, line=dict(color="#ccc", width=1, dash="dot"))
+
+        fig.update_layout(
+            height=380,
+            margin=dict(l=20, r=20, t=10, b=20),
+            xaxis_title="市场温度 (°C)",
+            yaxis_title="未来12个月收益 (%)",
+            plot_bgcolor="white",
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        )
+
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with stat_col:
+        # Correlation statistics
+        sig_badge = "✅ 统计显著" if corr["significant"] else "⚠️ 不显著"
+        sig_color = "#27ae60" if corr["significant"] else "#E65100"
+
+        st.markdown(
+            f"<div style='padding:16px;background:#fafafa;border-radius:10px;margin-bottom:10px'>"
+            f"<div style='font-size:0.85em;font-weight:600;margin-bottom:10px'>📊 相关分析</div>"
+            f"<table style='width:100%;font-size:0.9em'>"
+            f"<tr><td>Pearson r</td><td style='text-align:right;font-weight:700'>{corr['pearson_r']:.4f}</td></tr>"
+            f"<tr><td>p 值</td><td style='text-align:right;font-weight:700'>{corr['p_value']:.4f}</td></tr>"
+            f"<tr><td>R²</td><td style='text-align:right;font-weight:700'>{corr['r_squared']:.4f}</td></tr>"
+            f"<tr><td>显著性</td><td style='text-align:right;font-weight:700;color:{sig_color}'>{sig_badge}</td></tr>"
+            f"<tr><td>样本量</td><td style='text-align:right'>{dq['total_points']} 个月</td></tr>"
+            f"<tr><td>基准指数</td><td style='text-align:right'>{dq['index_name']}</td></tr>"
+            f"</table></div>",
+            unsafe_allow_html=True,
+        )
+
+        # Interpretation
+        st.info(corr["interpretation"])
+
+    # ── Bucket analysis ────────────────────────────────────────────────────
+    buckets = validation.get("bucket_analysis", [])
+    if buckets:
+        st.markdown("#### 温度分桶：各区间未来收益对比")
+
+        bucket_cols = st.columns(len(buckets), gap="small")
+        for i, b in enumerate(buckets):
+            with bucket_cols[i]:
+                # Color based on zone
+                zone_colors_bucket = {
+                    "🧊 极度低估": "#2196F3",
+                    "❄️ 偏低": "#64B5F6",
+                    "🌡️ 适中": "#9E9E9E",
+                    "🔥 偏贵": "#FF9800",
+                    "💥 高估": "#f44336",
+                }
+                zone_color = zone_colors_bucket.get(b["zone"], "#9E9E9E")
+
+                # Determine if this bucket has positive avg return
+                avg_ret = b["avg_forward_return"]
+                ret_color = "#27ae60" if avg_ret > 0 else "#e74c3c"
+
+                st.markdown(
+                    f"<div style='text-align:center;padding:10px 6px;border-radius:8px;"
+                    f"background:{zone_color}10;border:1.5px solid {zone_color}30'>"
+                    f"<div style='font-size:0.78em;color:#555;margin-bottom:4px'>{b['zone']}</div>"
+                    f"<div style='font-size:0.7em;color:#888'>{b['range']}</div>"
+                    f"<div style='font-size:1.15em;font-weight:700;color:{ret_color};margin:4px 0'>"
+                    f"{'+' if avg_ret > 0 else ''}{avg_ret}%</div>"
+                    f"<div style='font-size:0.7em;color:#888'>平均未来12月收益</div>"
+                    f"<div style='font-size:0.7em;color:#aaa'>"
+                    f"正收益率 {b['positive_rate']}% · n={b['count']}</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+
+# ── Regime decomposition ───────────────────────────────────────────────────────
+
+def _render_regime_decomposition(backtest: dict):
+    """Render market regime decomposition: strategy performance in bull/bear/sideways."""
+    st.markdown("---")
+    st.markdown("### 📊 市场环境分解：什么情况下温度定投有效？")
+
+    regime_analysis = backtest.get("regime_analysis", {})
+    regimes = regime_analysis.get("regimes", {})
+    insight = regime_analysis.get("insight", "")
+
+    if not regimes:
+        st.info("市场环境数据不足以进行分解分析")
+        return
+
+    st.markdown(
+        '<p style="font-size:0.85em;color:#888;margin-bottom:12px">'
+        '将回测区间拆分为牛市（价>均线+上行）、熊市（价<均线+下行）、震荡市（价在均线附近），'
+        '对比三种策略在各环境下的表现。不同策略在不同市场中各有优劣——'
+        '了解这一点是制定投资策略的关键。</p>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Comparison table ───────────────────────────────────────────────────
+    # Build table as HTML cards
+    regime_order = ["🐂 牛市", "🐻 熊市", "📊 震荡"]
+
+    cols = st.columns(len(regime_order), gap="small")
+
+    for i, regime_label in enumerate(regime_order):
+        data = regimes.get(regime_label)
+        with cols[i]:
+            if data is None:
+                st.markdown(
+                    f"<div style='padding:16px;text-align:center;background:#fafafa;"
+                    f"border-radius:10px;color:#999'>"
+                    f"<div style='font-size:1.2em'>{regime_label}</div>"
+                    f"<div style='font-size:0.8em;margin-top:8px'>本期无此环境</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                continue
+
+            # Build card
+            months = data["months"]
+            avg_temp = data["avg_temperature"]
+
+            # Strategies comparison within this regime
+            strategies_html = ""
+            for label, key in [("🌡️ 温度", "temp_dca"), ("📋 普通", "regular_dca"), ("💰 一次性", "lump_sum")]:
+                s = data[key]
+                ret = s["return_pct"]
+                is_winner = s.get("is_winner", False)
+                ret_color = "#27ae60" if ret > 0 else "#e74c3c"
+                winner_mark = " 🏆" if is_winner else ""
+                strategies_html += (
+                    f"<div style='display:flex;justify-content:space-between;"
+                    f"font-size:0.82em;padding:2px 0;"
+                    f"{'font-weight:700;color:#E65100' if is_winner else 'color:#555'}'>"
+                    f"<span>{label}{winner_mark}</span>"
+                    f"<span style='color:{ret_color}'>{'+' if ret > 0 else ''}{ret}%</span>"
+                    f"</div>"
+                )
+
+            st.markdown(
+                f"<div style='padding:14px 12px;background:#fafafa;border-radius:10px;"
+                f"border:1.5px solid #e0e0e0'>"
+                f"<div style='font-size:1.1em;font-weight:600;text-align:center;"
+                f"margin-bottom:6px'>{regime_label}</div>"
+                f"<div style='font-size:0.75em;color:#888;text-align:center;margin-bottom:10px'>"
+                f"{months} 个月 · 平均温度 {avg_temp:.0f}°C</div>"
+                f"{strategies_html}"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # ── Insight ────────────────────────────────────────────────────────────
+    if insight:
+        st.markdown("")
+        st.info(insight)
+
+    # ── Key takeaway ───────────────────────────────────────────────────────
+    st.markdown(
+        '<div style="font-size:0.82em;color:#888;margin-top:4px">'
+        '💡 <b>核心认知</b>：没有任何策略在所有市场中都最优。'
+        '温度定投的价值定位是——用牛市中的相对落后，换取熊市和震荡市中的显著优势。'
+        '这是一个明确、可预期的 trade-off，而非策略缺陷。'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+# ── Behavioral finance framework ───────────────────────────────────────────────
+
+def _render_behavioral_finance():
+    """Render behavioral finance explanation: why temperature DCA works.
+
+    Positions the system as a tool to counteract specific cognitive biases,
+    elevating it from a technical tool to a theoretically grounded system.
+    """
+    st.markdown("---")
+    st.markdown("### 🧠 行为金融视角：为什么温度定投理论上应该有效？")
+
+    st.markdown(
+        '<p style="font-size:0.85em;color:#888;margin-bottom:16px">'
+        '温度定投的价值不在于"预测市场"——没有人能准确预测。'
+        '它的价值在于帮助投资者克服特定认知偏差，用规则取代情绪驱动决策。</p>',
+        unsafe_allow_html=True,
+    )
+
+    biases = [
+        {
+            "emoji": "🧊",
+            "zone": "低估区间 (0-40°C)",
+            "bias": "损失厌恶 (Loss Aversion)",
+            "bias_en": "Loss Aversion",
+            "mechanism": (
+                "市场恐慌时，投资者因害怕继续亏损而不敢买入。"
+                "温度定投通过**自动加仓到 1.25–2.0 倍**，"
+                "用规则强制逆情绪操作，克服'该买不敢买'的心理障碍。"
+            ),
+            "color": "#2196F3",
+        },
+        {
+            "emoji": "🔥",
+            "zone": "高估区间 (60-100°C)",
+            "bias": "羊群效应 (Herd Behavior)",
+            "bias_en": "Herd Behavior",
+            "mechanism": (
+                "市场狂热时，投资者容易追涨杀跌。"
+                "温度定投通过**强制少投至 0–0.75 倍**，"
+                "在高位自动刹车，避免'别人都在买所以我也买'的从众陷阱。"
+            ),
+            "color": "#FF9800",
+        },
+        {
+            "emoji": "🌡️",
+            "zone": "适中区间 (40-60°C)",
+            "bias": "锚定效应 (Anchoring)",
+            "bias_en": "Anchoring",
+            "mechanism": (
+                "投资者容易被近期价格'锚定'，在正常波动中过度反应。"
+                "温度定投在估值合理时**维持基准定投**，"
+                "不被短期价格波动所锚定，保持纪律性投资节奏。"
+            ),
+            "color": "#9E9E9E",
+        },
+    ]
+
+    for b in biases:
+        st.markdown(
+            f"<div style='display:flex;align-items:flex-start;padding:14px 16px;"
+            f"margin-bottom:10px;background:#fafafa;border-radius:10px;"
+            f"border-left:4px solid {b['color']};gap:14px'>"
+            f"<div style='font-size:1.8em;min-width:40px;text-align:center'>{b['emoji']}</div>"
+            f"<div style='flex:1'>"
+            f"<div style='font-weight:600;font-size:0.92em;margin-bottom:2px'>{b['zone']}</div>"
+            f"<div style='font-size:0.78em;color:{b['color']};margin-bottom:6px'>"
+            f"克服：{b['bias']}（{b['bias_en']}）</div>"
+            f"<div style='font-size:0.82em;color:#555;line-height:1.6'>{b['mechanism']}</div>"
+            f"</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # Summary
+    st.markdown(
+        '<div style="margin-top:12px;padding:14px 18px;background:#E8EAF6;'
+        'border-radius:10px;font-size:0.88em;color:#283593;line-height:1.7">'
+        '💡 <b>学术定位</b>：温度定投本质上是一种<b>规则化的行为金融干预工具</b>。'
+        '它不依赖市场预测能力，而是通过系统性地抵消投资者的认知偏差来创造价值。'
+        '这一视角将系统从"一个 Python 回测工具"提升为'
+        '"有行为金融学理论根基的量化决策系统"——'
+        '这正是 BA/FinTech 研究生项目最看重的思维深度。'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ── Real-time temperature suggestion ─────────────────────────────────────────
 
 def _render_current_suggestion(config: dict):
@@ -646,13 +982,22 @@ def show():
     # Step 4: Equity curves
     _render_equity_chart(backtest, config)
 
-    # Step 5: Metrics comparison
+    # Step 5: Signal validation — empirical foundation
+    _render_signal_validation(config)
+
+    # Step 6: Metrics comparison
     _render_metrics(backtest)
 
-    # Step 6: Yearly breakdown
+    # Step 7: Regime decomposition — where does the strategy win/lose?
+    _render_regime_decomposition(backtest)
+
+    # Step 8: Yearly breakdown
     _render_yearly_breakdown(backtest, config)
 
-    # Step 7: Real-time suggestion
+    # Step 9: Behavioral finance framework — theoretical grounding
+    _render_behavioral_finance()
+
+    # Step 10: Real-time suggestion
     _render_current_suggestion(config)
 
     # Footer
