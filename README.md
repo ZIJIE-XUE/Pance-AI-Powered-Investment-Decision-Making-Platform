@@ -183,15 +183,6 @@ pytest tests/unit/ -v               # 仅单元测试
 
 ---
 
-## 📝 申请文书
-
-项目配套了两份高质量申请/面试材料：
-
-- [个人陈述 / 项目动机](docs/文书_个人陈述.md) — 适合 BA/FinTech 研究生申请文书中的项目经历段落
-- [面试故事 / 构建流程](docs/面试故事_构建流程.md) — STAR 法则完整的项目叙述，含常见追问及回答要点
-
----
-
 ## ⚠️ 免责声明
 
 本系统仅供学习和研究目的。所有投资分析和建议仅供参考，**不构成任何形式的投资建议**。历史回测不代表未来收益。投资有风险，入市需谨慎。
@@ -199,3 +190,187 @@ pytest tests/unit/ -v               # 仅单元测试
 ---
 
 © 2026 磐策 PánCè. Built by Jason & Claude.
+
+---
+
+---
+
+# 🇬🇧 English
+
+## ⛰️ PánCè — AI Robo Advisor for the Chinese A-Share Market
+
+> **稳如磐石 · 策定乾坤** *(Steady as a Rock · Strategize the World)*
+
+An AI-driven quantitative investment platform purpose-built for Chinese individual investors.
+**Core innovation**: a **Temperature-Driven DCA** (dollar-cost-averaging) engine that
+dynamically adjusts monthly investment amounts based on real-time market valuation signals —
+buy more when the market is cold, buy less when it overheats.
+
+---
+
+## 🌡️ Flagship Feature: Temperature-Driven DCA
+
+| Metric | 🌡️ Temp DCA | 📋 Regular DCA | 💰 Lump Sum |
+|--------|:-----------:|:-------------:|:----------:|
+| CAGR | **19.3%** | 7.2% | 13.7% |
+| Max Drawdown | **-0.9%** | -2.0% | -7.9% |
+| Sharpe Ratio | **1.39** | 0.71 | 0.71 |
+
+> CSI 300 Index, 3-year backtest, moderate strategy. The temperature-driven approach
+> outperformed regular DCA by 33 percentage points with 1/9 the drawdown of lump sum.
+
+### How It Works
+
+- **Market Temperature (0–100°C)**: A composite of PE valuation score (weight: 60%) +
+  price deviation from 200-day moving average (weight: 40%)
+- **Dynamic Multiplier Map**:
+  - 🧊 Undervalued (0–40°C) → 1.25×–2.0× — aggressive buying
+  - 🌡️ Fair (40–60°C) → 1.0× — normal DCA
+  - 🔥 Overvalued (60–100°C) → 0×–0.75× — reduced or paused
+- **Cash Pool Mechanism**: surpluses saved during hot periods are automatically
+  redeployed when the temperature cools — no cash sits idle
+- **Three Strategy Profiles**: Aggressive / Moderate / Conservative
+
+---
+
+## 🔬 Five-Layer Analytical Framework
+
+This goes beyond "a backtest script." Each layer answers a progressively deeper question:
+
+| # | Layer | Question Answered | Methodology |
+|:--:|--------|-------------------|-------------|
+| 1 | **Backtest Engine** | *Does it work in history?* | 3-strategy simulation over configurable horizons with cash pool mechanics |
+| 2 | **Signal Validation** | *Does temperature actually predict returns?* | Pearson correlation of monthly temperature vs. forward 12-month returns; scatter plot with regression; quintile bucket analysis |
+| 3 | **Walk-Forward Test** | *Is this just overfitting?* | Gold-standard out-of-sample validation — grid search (6 PE weights × 3 strategies = 18 combinations) on training window, then a single locked-parameter run on unseen test data |
+| 4 | **Regime Decomposition** | *When does it win and when does it lose?* | Performance breakdown across bull, bear, and sideways market regimes — honest trade-off analysis |
+| 5 | **Behavioral Finance** | *Why should it work in theory?* | Positions the system as a rules-based intervention against three cognitive biases: loss aversion, herd behavior, and anchoring |
+
+---
+
+## ✨ Full Feature Set
+
+### 🌡️ Temperature DCA System (Flagship)
+
+| Feature | Description |
+|---------|-------------|
+| 🌡️ **Temperature DCA** | Dynamic monthly investment based on real-time valuation temperature |
+| 📈 **Historical Backtest** | Temp DCA vs. regular DCA vs. lump sum — multi-metric comparison |
+| 🔍 **Mechanism Analysis** | Zone-by-zone investment breakdown, cash pool dynamics, strategy caveats |
+| 🔬 **Signal Validation** | Pearson correlation + scatter regression validating temperature's predictive power |
+| 📊 **Regime Decomposition** | Bull / bear / sideways performance comparison — strategy boundaries |
+| 🧠 **Behavioral Finance** | Theoretical grounding: loss aversion, herd behavior, anchoring |
+| 🚶 **Walk-Forward** | Out-of-sample grid search — strategy robustness beyond curve-fitting |
+
+### 🎯 Risk Assessment & Portfolio Construction
+
+| Feature | Description |
+|---------|-------------|
+| 🎯 **Risk Questionnaire** | 12-item scientific assessment → 5 risk tolerance levels |
+| 🌍 **Multi-Market Coverage** | A-shares / HK / US / Korea — configurable market selection |
+| 📊 **Portfolio Optimization** | Two-stage: risk-based asset allocation → PyPortfolioOpt mean-variance ETF selection (30+ ETFs) |
+| 🔮 **Monte Carlo Simulation** | 10,000 GBM paths → 5/10/20-year return distributions with VaR/CVaR |
+| 🤖 **AI Analysis** | Local rule-based engine — instant allocation rationale, risk identification, scenario analysis |
+| 📄 **PDF Report** | 7-chapter professional report with embedded Plotly charts |
+
+### 📊 Market Dashboard
+
+| Feature | Description |
+|---------|-------------|
+| 📊 **Market Dashboard** | Real-time index quotes, sector heatmaps, macro indicators, ETF rankings |
+| 📈 **ETF Comparison** | Multi-ETF cross-comparison, including 12 A-share sector ETFs |
+| 🌡️ **Market Thermometer** | PE valuation + 200-day MA deviation for SSE 50 / CSI 300 / CSI 500 / CSI 1000 |
+
+### 🛠️ Standalone Tools
+
+| Feature | Description |
+|---------|-------------|
+| 💰 **DCA Calculator** | Forward (monthly → terminal) / reverse (target → monthly) with yearly breakdowns |
+| 📚 **Investment Glossary** | 75 bilingual (CN/EN) financial terms across 8 categories |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Framework** | Streamlit (full-stack) |
+| **Data** | Pandas, NumPy, AKShare (Sina + CSIndex + EastMoney), Yahoo Finance |
+| **Visualization** | Plotly (interactive charts), Matplotlib (report charts) |
+| **Statistics** | SciPy (Pearson r, hypothesis testing), NumPy (linear regression) |
+| **Database** | SQLAlchemy ORM + SQLite |
+| **Reporting** | ReportLab (PDF generation with embedded Plotly images) |
+| **Config** | Pydantic Settings, YAML |
+
+**Scale**: 61 Python files · 13,000+ lines · 12 UI pages · 5-layer architecture
+**Data**: 100% free public sources · Zero API keys required · No external LLM dependency
+
+---
+
+## 🏗️ Architecture
+
+```
+ai-robo-advisor/
+├── config/                    # Pydantic settings, YAML configs, prompt templates
+├── src/
+│   ├── agents/                # AI analysis agent layer
+│   ├── db/                    # SQLAlchemy ORM + Repository pattern
+│   ├── engine/                # Pure computation (no Streamlit dependency)
+│   │   ├── temperature_dca_engine.py  # 🌡️ Flagship backtest + validation
+│   │   ├── market_thermometer.py      # Temperature signal computation
+│   │   ├── dca_calculator.py          # DCA forward/reverse calculator
+│   │   ├── risk_engine.py             # Risk scoring
+│   │   ├── optimizer.py               # Two-stage portfolio optimization
+│   │   ├── monte_carlo.py             # GBM Monte Carlo simulation
+│   │   ├── market_data.py             # Multi-source market data (Sina/EastMoney/CSIndex)
+│   │   └── local_advisor_engine.py    # Local AI analysis engine
+│   ├── models/                # Pydantic data models
+│   ├── reports/               # PDF report generation
+│   ├── services/              # Business logic orchestration
+│   └── ui/                    # Streamlit frontend (12 pages + reusable components)
+└── tests/                     # Unit tests
+```
+
+**Design principle**: computation (engine/) is strictly separated from presentation (ui/).
+Every financial calculation is independently testable without a running Streamlit process.
+
+---
+
+## 🚀 Quick Start
+
+```bash
+git clone <repo-url> && cd ai-robo-advisor
+pip install -r requirements.txt
+streamlit run src/ui/app.py
+```
+
+Open **http://localhost:8501**. No API keys, no VPN (for A-share data).
+
+---
+
+## 🌍 Data Sources
+
+| Market | Coverage | Source | VPN Required |
+|--------|:--------:|--------|:------------:|
+| 🇨🇳 A-shares (broad) | 3 ETFs | AKShare (Sina) | No |
+| 🇨🇳 A-shares (sectors) | 12 ETFs | AKShare (EastMoney) | No |
+| 🇭🇰 Hong Kong | 3 ETFs | AKShare | No |
+| 🇺🇸 US (cross-listed) | 2 ETFs | AKShare | No |
+| 🇺🇸 US (direct) | 5 ETFs | Yahoo Finance | Yes |
+| 🇰🇷 Korea | 1 ETF | Yahoo Finance | Yes |
+| 📜 Bonds | 6 ETFs | AKShare + Yahoo | Partial |
+| 🥇 Gold | 3 ETFs | AKShare + Yahoo | Partial |
+
+> **20+ ETFs accessible without VPN** — full A-share broad + sector + HK + cross-border coverage.
+
+---
+
+## ⚠️ Disclaimer
+
+This system is built for **educational and research purposes only**. All investment analysis
+and suggestions are for reference only and **do not constitute investment advice** in any form.
+Historical backtest results do not guarantee future performance. Investing involves risk.
+Consult a licensed financial advisor before making investment decisions.
+
+---
+
+Built by **Jason (ZIJIE-XUE)** · 2026
