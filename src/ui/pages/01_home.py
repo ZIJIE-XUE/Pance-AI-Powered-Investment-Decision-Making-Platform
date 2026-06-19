@@ -94,9 +94,14 @@ def show():
             if markets:
                 st.metric("意向市场", markets)
 
-        if st.button("🔄 修改信息"):
-            st.session_state.user = None
-            st.rerun()
+        col_edit, col_next, _ = st.columns([1, 1, 2])
+        with col_edit:
+            if st.button("🔄 修改信息"):
+                st.session_state.user = None
+                st.rerun()
+        with col_next:
+            if st.button("👉 下一步：风险测评", type="primary", use_container_width=True):
+                st.switch_page("pages/02_risk_assessment.py")
         return
 
     # Input form
