@@ -36,7 +36,7 @@ ZONE_COLORS = {
 
 # ── Data loading (cached) ────────────────────────────────────────────────────
 
-_CACHE_VERSION = "v4"  # bump — added PE coverage stats to data_quality
+_CACHE_VERSION = "v5"  # bump — percentile-rank MA fallback to spread temp distribution
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def _fetch_backtest_data(

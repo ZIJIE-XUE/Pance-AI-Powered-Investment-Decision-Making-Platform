@@ -14,6 +14,7 @@ if str(project_root) not in sys.path:
 import streamlit as st
 
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 from src.utils.logging_config import setup_logging
 
 # Page configuration
@@ -46,6 +47,7 @@ def init_session_state():
         "simulation": None,
         "advisor_response": None,
         "report_metadata": None,
+        "lang": "zh",
     }
     for key, default_value in defaults.items():
         if key not in st.session_state:
@@ -148,8 +150,8 @@ def _render_hero():
     st.markdown(
         '<div class="landing-hero">'
         '<h1>⛰️ 磐策 PánCè</h1>'
-        '<p class="subtitle">AI 智能投资决策平台</p>'
-        '<p class="tagline">稳如磐石 · 策定乾坤</p>'
+        f'<p class="subtitle">{t("AI 智能投资决策平台")}</p>'
+        f'<p class="tagline">{t("稳如磐石 · 策定乾坤")}</p>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -187,13 +189,13 @@ def _render_features():
     cards_html = '<div class="feature-grid">'
     for f in features:
         cls = "feature-card flagship" if f["flagship"] else "feature-card"
-        badge = ' <span class="badge-flagship">旗舰</span>' if f["flagship"] else ""
+        badge = f' <span class="badge-flagship">{t("旗舰")}</span>' if f["flagship"] else ""
         cards_html += (
             f'<div class="{cls}">'
             f'<div style="font-size:1.8em;margin-bottom:6px">{f["icon"]}</div>'
             f'<div style="font-weight:600;font-size:0.92em;margin-bottom:6px">'
-            f'{f["title"]}{badge}</div>'
-            f'<div style="font-size:0.74em;color:#888;line-height:1.55">{f["desc"]}</div>'
+            f'{t(f["title"])}{badge}</div>'
+            f'<div style="font-size:0.74em;color:#888;line-height:1.55">{t(f["desc"])}</div>'
             f'</div>'
         )
     cards_html += '</div>'
@@ -204,21 +206,21 @@ def _render_features():
 def _render_quickstart():
     """Quick start guide."""
     st.markdown(
-        '<div class="landing-steps">'
-        '<h4 style="margin:0 0 10px 0">🚀 快速开始</h4>'
-        '<ol>'
-        '<li><b>🌡️ 智能温度定投</b> — 旗舰功能，可直接使用，无需前置步骤</li>'
-        '<li>📝 填写基本信息 → 🎯 完成风险测评</li>'
-        '<li>📊 查看 AI 优化的投资组合 → 🔮 运行 Monte Carlo 模拟</li>'
-        '<li>🤖 获取 AI 深度分析 → 📄 下载 PDF 专业报告</li>'
-        '</ol>'
-        '</div>',
+        f'<div class="landing-steps">'
+        f'<h4 style="margin:0 0 10px 0">{t("🚀 快速开始")}</h4>'
+        f'<ol>'
+        f'<li>{t("🌡️ 智能温度定投 — 旗舰功能，可直接使用，无需前置步骤")}</li>'
+        f'<li>{t("📝 填写基本信息 → 🎯 完成风险测评")}</li>'
+        f'<li>{t("📊 查看 AI 优化的投资组合 → 🔮 运行 Monte Carlo 模拟")}</li>'
+        f'<li>{t("🤖 获取 AI 深度分析 → 📄 下载 PDF 专业报告")}</li>'
+        f'</ol>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
     st.info(
-        "👈 从左侧栏 🌡️ 温度定投系统 开始体验旗舰功能，"
-        "或从 🎯 风险测评及投资建议 走完完整流程。"
+        t("👈 从左侧栏 🌡️ 温度定投系统 开始体验旗舰功能，"
+          "或从 🎯 风险测评及投资建议 走完完整流程。")
     )
 
 
@@ -227,15 +229,15 @@ def _render_quickstart():
 def _render_next_step():
     """Show next step for users in the middle of the workflow."""
     if st.session_state.risk_profile is None:
-        st.info("👉 下一步：完成风险测评问卷")
+        st.info(t("👉 下一步：完成风险测评问卷"))
     elif st.session_state.portfolio is None:
-        st.info("👉 下一步：生成投资组合配置")
+        st.info(t("👉 下一步：生成投资组合配置"))
     elif st.session_state.simulation is None:
-        st.info("👉 下一步：运行 Monte Carlo 模拟")
+        st.info(t("👉 下一步：运行 Monte Carlo 模拟"))
     elif st.session_state.advisor_response is None:
-        st.info("👉 下一步：获取 AI 投资建议")
+        st.info(t("👉 下一步：获取 AI 投资建议"))
     elif st.session_state.report_metadata is None:
-        st.info("👉 下一步：下载 PDF 报告")
+        st.info(t("👉 下一步：下载 PDF 报告"))
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -258,7 +260,7 @@ def main():
         # Returning user — show progress and next step
         st.markdown(
             '<div class="landing-hero" style="padding:24px 32px">'
-            f'<h1 style="font-size:1.2em;margin:0">👋 欢迎回来，{st.session_state.user.get("display_name") or "投资者"}</h1>'
+            f'<h1 style="font-size:1.2em;margin:0">{t("👋 欢迎回来，")}{st.session_state.user.get("display_name") or "投资者"}</h1>'
             '</div>',
             unsafe_allow_html=True,
         )

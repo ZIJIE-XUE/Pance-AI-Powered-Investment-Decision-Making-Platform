@@ -295,9 +295,15 @@ def _compute_monthly_temperatures(
                 axis=1,
             )
         else:
-            df["temperature"] = df["ma_score"]
+            # PE coverage < 30%: raw MA scores cluster in 25-75, making
+            # extreme zones rarely visited → all strategies behave similarly.
+            # Percentile rank spreads temperatures uniformly across 0-100,
+            # ensuring ~20% of months land in each 20-point band so that
+            # aggressive / moderate / conservative curves visibly diverge.
+            df["temperature"] = df["ma_score"].rank(pct=True) * 100
     else:
-        df["temperature"] = df["ma_score"]
+        # No PE data at all. Same percentile-rank fallback for the same reason.
+        df["temperature"] = df["ma_score"].rank(pct=True) * 100
         df["pe_score"] = None
 
     # Remove incomplete rows
