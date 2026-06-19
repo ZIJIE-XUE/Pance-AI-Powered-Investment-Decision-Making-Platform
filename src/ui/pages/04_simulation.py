@@ -142,6 +142,15 @@ def show():
         sim = st.session_state.simulation
         _display_simulation_results(sim)
 
+        col_retry, col_next, _ = st.columns([1, 1, 2])
+        with col_retry:
+            if st.button("🔄 重新模拟"):
+                st.session_state.simulation = None
+                st.rerun()
+        with col_next:
+            if st.button("👉 下一步：AI 分析", type="primary", use_container_width=True):
+                st.switch_page("pages/05_ai_advisor.py")
+
 
 def _display_simulation_results(sim: dict):
     """Display Monte Carlo simulation results with charts and stats."""

@@ -65,13 +65,17 @@ def show():
         )
         render_risk_result(risk_profile)
 
-        if st.button("🔄 重新测评"):
-            st.session_state.risk_profile = None
-            # Clear radio button states
-            keys_to_clear = [k for k in st.session_state.keys() if k.startswith("q_")]
-            for k in keys_to_clear:
-                del st.session_state[k]
-            st.rerun()
+        col_retry, col_next, _ = st.columns([1, 1, 2])
+        with col_retry:
+            if st.button("🔄 重新测评"):
+                st.session_state.risk_profile = None
+                keys_to_clear = [k for k in st.session_state.keys() if k.startswith("q_")]
+                for k in keys_to_clear:
+                    del st.session_state[k]
+                st.rerun()
+        with col_next:
+            if st.button("👉 下一步：投资组合", type="primary", use_container_width=True):
+                st.switch_page("pages/03_portfolio.py")
         return
 
     # Render questionnaire

@@ -59,9 +59,14 @@ def show():
         response = st.session_state.advisor_response
         _display_advisor_response(response)
 
-        if st.button("🔄 重新分析"):
-            st.session_state.advisor_response = None
-            st.rerun()
+        col_retry, col_next, _ = st.columns([1, 1, 2])
+        with col_retry:
+            if st.button("🔄 重新分析"):
+                st.session_state.advisor_response = None
+                st.rerun()
+        with col_next:
+            if st.button("👉 下一步：下载报告", type="primary", use_container_width=True):
+                st.switch_page("pages/06_report.py")
         return
 
     # Generate analysis button

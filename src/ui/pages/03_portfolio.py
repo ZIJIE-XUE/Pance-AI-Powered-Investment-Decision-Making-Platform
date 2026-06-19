@@ -68,9 +68,14 @@ def show():
         portfolio = st.session_state.portfolio
         _display_portfolio_result(portfolio)
 
-        if st.button("🔄 重新优化"):
-            st.session_state.portfolio = None
-            st.rerun()
+        col_retry, col_next, _ = st.columns([1, 1, 2])
+        with col_retry:
+            if st.button("🔄 重新优化"):
+                st.session_state.portfolio = None
+                st.rerun()
+        with col_next:
+            if st.button("👉 下一步：Monte Carlo 模拟", type="primary", use_container_width=True):
+                st.switch_page("pages/04_simulation.py")
         return
 
     # Run optimization button
