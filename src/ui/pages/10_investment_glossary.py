@@ -10,6 +10,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -37,12 +38,12 @@ def _get_category_map(glossary: dict) -> dict:
 
 def _render_header():
     """Render page title and description."""
-    st.title("📚 投资术语百科")
+    st.title(t("📚 投资术语百科"))
     st.markdown(
-        "<p style='color:#888;font-size:0.95em'>"
-        "中英双语投资百科，随时随地查阅金融术语 · "
-        f"共收录 <b>{len(_load_glossary().get('terms', []))}</b> 个术语"
-        "</p>",
+        f"<p style='color:#888;font-size:0.95em'>"
+        + t("中英双语投资百科，随时随地查阅金融术语 · 共收录 **{n}** 个术语").format(
+            n=len(_load_glossary().get('terms', [])))
+        + "</p>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
@@ -56,8 +57,8 @@ def _render_filters(glossary: dict, cat_map: dict):
 
     with col_search:
         search_query = st.text_input(
-            "🔍 搜索术语",
-            placeholder="输入中文或英文关键词搜索…",
+            t("🔍 搜索术语"),
+            placeholder=t("输入中文或英文关键词搜索…"),
             label_visibility="collapsed",
             key="glossary_search",
         )
@@ -65,11 +66,11 @@ def _render_filters(glossary: dict, cat_map: dict):
     with col_cat:
         # Build category options
         cat_keys = ["all"] + [cat["key"] for cat in glossary.get("categories", [])]
-        cat_labels = ["📂 全部"] + [
+        cat_labels = [t("📂 全部")] + [
             f"{cat['icon']} {cat['name']}" for cat in glossary.get("categories", [])
         ]
         selected = st.selectbox(
-            "类别筛选",
+            t("类别筛选"),
             options=cat_keys,
             format_func=lambda k: cat_labels[cat_keys.index(k)] if k in cat_keys else k,
             label_visibility="collapsed",
@@ -127,9 +128,9 @@ def _render_term_card(term: dict, cat_map: dict):
         "advanced": "#e74c3c",
     }
     diff_label = {
-        "beginner": "入门",
-        "intermediate": "进阶",
-        "advanced": "高级",
+        "beginner": t("入门"),
+        "intermediate": t("进阶"),
+        "advanced": t("高级"),
     }
 
     with st.container(border=True):
@@ -176,7 +177,7 @@ def _render_term_card(term: dict, cat_map: dict):
             if related_labels:
                 st.markdown(
                     "<div style='font-size:0.78em;color:#aaa;margin-top:4px'>"
-                    "📎 相关术语：" + " · ".join(related_labels) +
+                    "📎 " + t("相关术语：") + " · ".join(related_labels) +
                     "</div>",
                     unsafe_allow_html=True,
                 )
@@ -203,12 +204,13 @@ def show():
     if search_query or (category and category != "all"):
         st.markdown(
             f"<p style='color:#888;font-size:0.85em;margin-bottom:12px'>"
-            f"找到 <b>{len(results)}</b> / {total_count} 个术语</p>",
+            + t("找到 **{n}** / {total} 个术语").format(n=len(results), total=total_count)
+            + "</p>",
             unsafe_allow_html=True,
         )
 
     if not results:
-        st.info("📭 没有找到匹配的术语，试试更换关键词或类别筛选。")
+        st.info(t("📭 没有找到匹配的术语，试试更换关键词或类别筛选。"))
         return
 
     # Render term cards
@@ -218,8 +220,7 @@ def show():
     # Footer
     st.markdown("---")
     st.caption(
-        "📚 投资术语百科 — 磐策 PánCè 知识库。"
-        "内容仅供参考学习，不构成投资建议。"
+        t("📚 投资术语百科 — 磐策 PánCè 知识库。内容仅供参考学习，不构成投资建议。")
     )
 
 

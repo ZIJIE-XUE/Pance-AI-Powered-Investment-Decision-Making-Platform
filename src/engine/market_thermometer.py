@@ -142,7 +142,7 @@ def _fetch_csindex_pe(csindex_code: str) -> Optional[dict]:
         }
 
     except Exception as e:
-        logger.warning("csindex_pe_failed", code=csindex_code, error=str(e)[:100])
+        logger.warning(f"csindex_pe_failed: {csindex_code} — {str(e)[:100]}")
         return None
 
 

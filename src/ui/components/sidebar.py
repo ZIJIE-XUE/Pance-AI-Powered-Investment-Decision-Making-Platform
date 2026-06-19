@@ -155,27 +155,18 @@ def render_sidebar():
 
     # ── Helper: render a single nav card ───────────────────────────────
     def _nav_card(page_file, icon, title, desc, active=False, done=False, flagship=False):
-        """Render one card-style page link."""
-        classes = ["sb-card"]
-        if flagship:
-            classes.append("flagship")
-        if active:
-            classes.append("active")
-        if done:
-            classes.append("done")
+        """Render one card-style page link using st.page_link."""
+        check = "✅ " if done else ""
+        badge = f' [{t("旗舰")}]' if flagship else ""
+        prefix = "▸ " if active else ""
+        label = f"{prefix}{check}{icon}  {t(title)}{badge}"
 
-        badge_html = f' <span class="sb-badge">{t("旗舰")}</span>' if flagship else ""
-
-        html = (
-            f'<a class="{" ".join(classes)}" href="/{page_file}" target="_self">'
-            f'<span class="sb-icon">{icon}</span>'
-            f'<span class="sb-body">'
-            f'<span class="sb-title">{t(title)}{badge_html}</span>'
-            f'<br><span class="sb-desc">{t(desc)}</span>'
-            f'</span>'
-            f'</a>'
+        st.caption(t(desc))
+        st.page_link(
+            f"pages/{page_file}.py",
+            label=label,
+            use_container_width=True,
         )
-        st.markdown(html, unsafe_allow_html=True)
 
     # ── Sidebar body ───────────────────────────────────────────────────
     with st.sidebar:

@@ -24,6 +24,9 @@ def setup_logging() -> None:
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
             structlog.processors.UnicodeDecoder(),
+            # Merge extra kwargs into the event dict BEFORE rendering
+            # so they never reach logging.Logger._log().
+            structlog.stdlib.ExtraAdder(),
             structlog.dev.ConsoleRenderer()
             if settings.LOG_LEVEL.upper() == "DEBUG"
             else structlog.processors.JSONRenderer(),

@@ -211,7 +211,7 @@ def _fetch_pe_history(csindex_code: str) -> Optional[pd.DataFrame]:
         return df[["date", pe_col]].rename(columns={pe_col: "pe"})
 
     except Exception as e:
-        logger.warning("pe_history_failed", code=csindex_code, error=str(e)[:100])
+        logger.warning(f"pe_history_failed: {csindex_code} — {str(e)[:100]}")
         return None
 
 

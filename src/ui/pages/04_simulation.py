@@ -14,6 +14,7 @@ from src.services.simulation_service import MonteCarloService
 from src.models.simulation import MonteCarloRequest
 from src.db.database import async_session_factory
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 
 async def _run_simulation(user_id, portfolio_id, initial_amount, horizon_years, num_paths):
@@ -41,16 +42,16 @@ async def _run_simulation(user_id, portfolio_id, initial_amount, horizon_years, 
 def show():
     """Display the Monte Carlo simulation page."""
     render_sidebar()
-    st.title("🔮 Monte Carlo 模拟")
+    st.title(t("🔮 Monte Carlo 模拟"))
 
     # Check prerequisites
     if "user" not in st.session_state or st.session_state.user is None:
-        st.warning("⚠️ 请先在首页填写基本信息")
+        st.warning(t("⚠️ 请先在首页填写基本信息"))
         return
 
     if "portfolio" not in st.session_state or st.session_state.portfolio is None:
-        st.warning("⚠️ 请先完成投资组合优化")
-        if st.button("前往组合优化"):
+        st.warning(t("⚠️ 请先完成投资组合优化"))
+        if st.button(t("前往组合优化")):
             st.switch_page("pages/03_portfolio.py")
         return
 
@@ -61,7 +62,7 @@ def show():
     col1, col2, col3 = st.columns(3)
     with col1:
         initial_amount = st.number_input(
-            "初始投资金额 (¥)",
+            t("初始投资金额 (¥)"),
             value=float(user.get("asset_size", 100_000)),
             min_value=1000.0,
             step=10_000.0,
@@ -69,30 +70,30 @@ def show():
         )
     with col2:
         horizon_years = st.selectbox(
-            "投资期限",
+            t("投资期限"),
             options=[5, 10, 20],
             index=0,
-            help="选择模拟的时间跨度",
+            help=t("选择模拟的时间跨度"),
         )
     with col3:
         num_paths = st.selectbox(
-            "模拟路径数",
+            t("模拟路径数"),
             options=[1_000, 5_000, 10_000, 50_000],
             index=2,
-            help="路径越多越精确，但计算时间更长",
+            help=t("路径越多越精确，但计算时间更长"),
         )
 
     # Run simulation button
     run_col1, run_col2 = st.columns([1, 2])
     with run_col1:
         run_sim = st.button(
-            "🔮 运行 Monte Carlo 模拟",
+            t("🔮 运行 Monte Carlo 模拟"),
             type="primary",
             use_container_width=True,
         )
 
     if run_sim:
-        with st.spinner(f"正在模拟 {num_paths:,} 条收益路径...（可能需要10-30秒）"):
+        with st.spinner(t("正在模拟 {paths} 条收益路径...（可能需要10-30秒）").format(paths=f"{num_paths:,}")):
             try:
                 result = asyncio.run(
                     _run_simulation(
@@ -131,11 +132,11 @@ def show():
                     "sample_paths": result.sample_paths,
                 }
 
-                st.success("✅ 模拟完成！")
+                st.success(t("✅ 模拟完成！"))
                 st.rerun()
 
             except Exception as e:
-                st.error(f"模拟失败：{str(e)}")
+                st.error(t("模拟失败：{error}").format(error=str(e)))
 
     # Display results if available
     if st.session_state.get("simulation") is not None:
@@ -144,11 +145,11 @@ def show():
 
         col_retry, col_next, _ = st.columns([1, 1, 2])
         with col_retry:
-            if st.button("🔄 重新模拟"):
+            if st.button(t("🔄 重新模拟")):
                 st.session_state.simulation = None
                 st.rerun()
         with col_next:
-            if st.button("👉 下一步：AI 分析", type="primary", use_container_width=True):
+            if st.button(t("👉 下一步：AI 分析"), type="primary", use_container_width=True):
                 st.switch_page("pages/05_ai_advisor.py")
 
 
@@ -170,31 +171,31 @@ def _display_simulation_results(sim: dict):
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.metric(
-            "初始投资",
+            t("初始投资"),
             f"¥{sim['initial_amount']:,.0f}",
         )
     with col2:
         st.metric(
-            "预期终值（中位数）",
+            t("预期终值（中位数）"),
             f"¥{sim['median_final_value']:,.0f}",
             delta=f"{total_return:.1f}%",
         )
     with col3:
         st.metric(
-            "悲观情景 (P5)",
+            t("悲观情景 (P5)"),
             f"¥{sim['percentile_5']:,.0f}",
             delta=f"{p5_return:.1f}%",
             delta_color="off",
         )
     with col4:
         st.metric(
-            "乐观情景 (P95)",
+            t("乐观情景 (P95)"),
             f"¥{sim['percentile_95']:,.0f}",
             delta=f"{p95_return:.1f}%",
         )
     with col5:
         st.metric(
-            "盈利概率",
+            t("盈利概率"),
             f"{sim['probability_positive'] * 100:.1f}%",
         )
 
@@ -208,18 +209,18 @@ def _display_simulation_results(sim: dict):
     st.markdown("---")
 
     # Fan chart
-    st.markdown("### 📈 收益路径扇形图")
+    st.markdown(t("### 📈 收益路径扇形图"))
     _render_fan_chart(sim)
 
     # Distribution histogram
     col_hist, col_stats = st.columns([2, 1])
 
     with col_hist:
-        st.markdown("### 📊 终值概率分布")
+        st.markdown(t("### 📊 终值概率分布"))
         _render_histogram(sim)
 
     with col_stats:
-        st.markdown("### 📋 逐年预测")
+        st.markdown(t("### 📋 逐年预测"))
         _render_yearly_table(sim)
 
 
@@ -267,7 +268,7 @@ def _render_fan_chart(sim: dict):
             y=p50,
             mode="lines",
             line=dict(color="#1a73e8", width=3),
-            name="中位数 (P50)",
+            name=t("中位数 (P50)"),
         )
     )
 
@@ -290,13 +291,13 @@ def _render_fan_chart(sim: dict):
         y=sim["initial_amount"],
         line_dash="dash",
         line_color="gray",
-        annotation_text="初始投资",
+        annotation_text=t("初始投资"),
     )
 
     fig.update_layout(
         height=500,
-        xaxis_title="年",
-        yaxis_title="组合价值 (¥)",
+        xaxis_title=t("年"),
+        yaxis_title=t("组合价值 (¥)"),
         hovermode="x unified",
         template="plotly_white",
     )
@@ -308,7 +309,7 @@ def _render_histogram(sim: dict):
     """Render histogram of final portfolio values."""
     final_values = sim.get("final_values")
     if not final_values:
-        st.info("无分布数据")
+        st.info(t("无分布数据"))
         return
 
     fig = go.Figure()
@@ -319,7 +320,7 @@ def _render_histogram(sim: dict):
             nbinsx=80,
             marker_color="#4285f4",
             opacity=0.75,
-            name="终值分布",
+            name=t("终值分布"),
         )
     )
 
@@ -329,9 +330,9 @@ def _render_histogram(sim: dict):
     p95 = sim["percentile_95"]
 
     for value, color, label in [
-        (p5, "red", "P5 (悲观)"),
-        (p50, "blue", "P50 (中位)"),
-        (p95, "green", "P95 (乐观)"),
+        (p5, "red", t("P5 (悲观)")),
+        (p50, "blue", t("P50 (中位)")),
+        (p95, "green", t("P95 (乐观)")),
     ]:
         fig.add_vline(
             x=value,
@@ -345,13 +346,13 @@ def _render_histogram(sim: dict):
         x=sim["initial_amount"],
         line_dash="dot",
         line_color="gray",
-        annotation_text="初始投资",
+        annotation_text=t("初始投资"),
     )
 
     fig.update_layout(
         height=400,
-        xaxis_title="组合终值 (¥)",
-        yaxis_title="频次",
+        xaxis_title=t("组合终值 (¥)"),
+        yaxis_title=t("频次"),
         showlegend=False,
         template="plotly_white",
     )
@@ -364,12 +365,12 @@ def _render_yearly_table(sim: dict):
     table_data = []
     for p in sim["yearly_projections"]:
         table_data.append({
-            "年份": f"第{p['year']}年",
-            "悲观(P10)": f"¥{p['percentile_10']:,.0f}",
-            "保守(P25)": f"¥{p['percentile_25']:,.0f}",
-            "中位(P50)": f"¥{p['percentile_50']:,.0f}",
-            "乐观(P75)": f"¥{p['percentile_75']:,.0f}",
-            "激进(P90)": f"¥{p['percentile_90']:,.0f}",
+            t("年份"): t("第{year}年").format(year=p['year']),
+            t("悲观(P10)"): f"¥{p['percentile_10']:,.0f}",
+            t("保守(P25)"): f"¥{p['percentile_25']:,.0f}",
+            t("中位(P50)"): f"¥{p['percentile_50']:,.0f}",
+            t("乐观(P75)"): f"¥{p['percentile_75']:,.0f}",
+            t("激进(P90)"): f"¥{p['percentile_90']:,.0f}",
         })
 
     st.dataframe(

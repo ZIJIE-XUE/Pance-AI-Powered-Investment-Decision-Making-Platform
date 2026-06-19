@@ -13,6 +13,7 @@ from src.services.portfolio_service import PortfolioOptimizationService
 from src.models.portfolio import PortfolioOptimizationRequest
 from src.db.database import async_session_factory
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 
 async def _optimize_portfolio(user_id, risk_profile_id, risk_level, preferred_markets=None):
@@ -39,16 +40,16 @@ async def _optimize_portfolio(user_id, risk_profile_id, risk_level, preferred_ma
 def show():
     """Display the portfolio optimization page."""
     render_sidebar()
-    st.title("📊 投资组合配置")
+    st.title(t("📊 投资组合配置"))
 
     # Check prerequisites
     if "user" not in st.session_state or st.session_state.user is None:
-        st.warning("⚠️ 请先在首页填写基本信息")
+        st.warning(t("⚠️ 请先在首页填写基本信息"))
         return
 
     if "risk_profile" not in st.session_state or st.session_state.risk_profile is None:
-        st.warning("⚠️ 请先完成风险测评")
-        if st.button("前往风险测评"):
+        st.warning(t("⚠️ 请先完成风险测评"))
+        if st.button(t("前往风险测评")):
             st.switch_page("pages/02_risk_assessment.py")
         return
 
@@ -59,8 +60,10 @@ def show():
     risk_level_label = risk_profile["risk_level_label"]
     risk_level = risk_profile["risk_level"]
     st.info(
-        f"🎯 您的风险等级：**{risk_level_label}** | "
-        f"评分：**{risk_profile['total_score'] * 100:.0f}%**"
+        t("🎯 您的风险等级：**{label}** | 评分：**{score:.0f}%**").format(
+            label=risk_level_label,
+            score=risk_profile['total_score'] * 100,
+        )
     )
 
     # Check if portfolio already exists in session
@@ -70,17 +73,17 @@ def show():
 
         col_retry, col_next, _ = st.columns([1, 1, 2])
         with col_retry:
-            if st.button("🔄 重新优化"):
+            if st.button(t("🔄 重新优化")):
                 st.session_state.portfolio = None
                 st.rerun()
         with col_next:
-            if st.button("👉 下一步：Monte Carlo 模拟", type="primary", use_container_width=True):
+            if st.button(t("👉 下一步：Monte Carlo 模拟"), type="primary", use_container_width=True):
                 st.switch_page("pages/04_simulation.py")
         return
 
     # Run optimization button
-    if st.button("🚀 生成投资组合", type="primary", use_container_width=True):
-        with st.spinner("正在进行投资组合优化...（获取市场数据可能需要1-2分钟）"):
+    if st.button(t("🚀 生成投资组合"), type="primary", use_container_width=True):
+        with st.spinner(t("正在进行投资组合优化...（获取市场数据可能需要1-2分钟）")):
             try:
                 markets = user.get("preferred_markets", "A股,港股,美股")
                 result = asyncio.run(
@@ -116,11 +119,11 @@ def show():
                     "max_drawdown": result.max_drawdown,
                 }
 
-                st.success("✅ 投资组合生成完成！")
+                st.success(t("✅ 投资组合生成完成！"))
                 st.rerun()
 
             except Exception as e:
-                st.error(f"优化失败：{str(e)}")
+                st.error(t("优化失败：{error}").format(error=str(e)))
 
 
 def _display_portfolio_result(portfolio: dict):
@@ -131,23 +134,23 @@ def _display_portfolio_result(portfolio: dict):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric(
-            "预期年化收益",
+            t("预期年化收益"),
             f"{portfolio['expected_return'] * 100:.2f}%",
         )
     with col2:
         st.metric(
-            "年化波动率",
+            t("年化波动率"),
             f"{portfolio['volatility'] * 100:.2f}%",
         )
     with col3:
         st.metric(
-            "夏普比率",
+            t("夏普比率"),
             f"{portfolio['sharpe_ratio']:.2f}",
-            help="Sharpe Ratio > 1 为良好，> 2 为优秀",
+            help=t("Sharpe Ratio > 1 为良好，> 2 为优秀"),
         )
     with col4:
         st.metric(
-            "最大回撤",
+            t("最大回撤"),
             f"{portfolio['max_drawdown'] * 100:.2f}%",
         )
 
@@ -157,7 +160,7 @@ def _display_portfolio_result(portfolio: dict):
     col_chart, col_table = st.columns([1, 1])
 
     with col_chart:
-        st.markdown("### 资产配置比例")
+        st.markdown(t("### 资产配置比例"))
         allocations = portfolio["allocations"]
 
         # Color map by asset class
@@ -190,25 +193,30 @@ def _display_portfolio_result(portfolio: dict):
         st.plotly_chart(fig, use_container_width=True)
 
         # Legend
-        st.markdown("**资产类别图例**")
+        st.markdown(t("**资产类别图例**"))
         legend_cols = st.columns(4)
-        class_names = {"equity": "🟥 股票", "bond": "🟦 债券", "gold": "🟩 黄金", "real_estate": "🟧 地产"}
+        class_names = {
+            "equity": t("🟥 股票"),
+            "bond": t("🟦 债券"),
+            "gold": t("🟩 黄金"),
+            "real_estate": t("🟧 地产"),
+        }
         for i, (cls, label) in enumerate(class_names.items()):
             with legend_cols[i]:
                 st.caption(label)
 
     with col_table:
-        st.markdown("### 持仓明细")
+        st.markdown(t("### 持仓明细"))
         # Build table data
         table_data = []
         for a in allocations:
             table_data.append({
-                "代码": a["ticker"],
-                "名称": a["name"],
-                "资产类别": a["asset_class"],
-                "配置比例": f"{a['weight'] * 100:.2f}%",
-                "预期收益": f"{a['expected_return'] * 100:.2f}%",
-                "年化波动": f"{a['volatility'] * 100:.2f}%",
+                t("代码"): a["ticker"],
+                t("名称"): a["name"],
+                t("资产类别"): a["asset_class"],
+                t("配置比例"): f"{a['weight'] * 100:.2f}%",
+                t("预期收益"): f"{a['expected_return'] * 100:.2f}%",
+                t("年化波动"): f"{a['volatility'] * 100:.2f}%",
             })
 
         st.dataframe(
@@ -216,8 +224,8 @@ def _display_portfolio_result(portfolio: dict):
             use_container_width=True,
             hide_index=True,
             column_config={
-                "代码": st.column_config.TextColumn(width="small"),
-                "配置比例": st.column_config.ProgressColumn(
+                t("代码"): st.column_config.TextColumn(width="small"),
+                t("配置比例"): st.column_config.ProgressColumn(
                     format="%.2f%%",
                     min_value=0,
                     max_value=1,
@@ -226,7 +234,7 @@ def _display_portfolio_result(portfolio: dict):
         )
 
     # Asset class summary
-    st.markdown("### 大类资产汇总")
+    st.markdown(t("### 大类资产汇总"))
     class_summary = {}
     for a in allocations:
         cls = a["asset_class"]
@@ -235,7 +243,13 @@ def _display_portfolio_result(portfolio: dict):
         class_summary[cls] += a["weight"]
 
     summary_cols = st.columns(len(class_summary))
-    class_labels = {"equity": "股票", "bond": "债券", "gold": "黄金", "real_estate": "地产", "cash": "现金"}
+    class_labels = {
+        "equity": t("股票"),
+        "bond": t("债券"),
+        "gold": t("黄金"),
+        "real_estate": t("地产"),
+        "cash": t("现金"),
+    }
     for i, (cls, weight) in enumerate(class_summary.items()):
         with summary_cols[i]:
             label = class_labels.get(cls, cls)

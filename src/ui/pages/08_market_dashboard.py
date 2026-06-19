@@ -19,6 +19,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 logger = logging.getLogger(__name__)
 
@@ -146,13 +147,13 @@ def _render_header():
     col_title, col_btn, col_time = st.columns([3, 1, 1.5])
 
     with col_title:
-        st.title("📊 市场仪表盘")
-        st.caption("实时市场数据概览 · 数据来源：AKShare & Yahoo Finance")
+        st.title(t("📊 市场仪表盘"))
+        st.caption(t("实时市场数据概览 · 数据来源：AKShare & Yahoo Finance"))
 
     with col_btn:
         st.markdown("<br>", unsafe_allow_html=True)  # vertical alignment spacer
-        if st.button("🔄 刷新行情", type="primary", use_container_width=True,
-                     help="立即更新指数价格和宏观指标（走势图和ETF涨跌榜每小时更新一次）"):
+        if st.button(t("🔄 刷新行情"), type="primary", use_container_width=True,
+                     help=t("立即更新指数价格和宏观指标（走势图和ETF涨跌榜每小时更新一次）")):
             _fetch_snapshot_cached.clear()
             st.rerun()
 
@@ -164,7 +165,7 @@ def _render_header():
             time_str = ts.strftime("%H:%M:%S") if isinstance(ts, datetime) else str(ts)
             st.markdown(
                 f"<div style='text-align:right;padding-top:8px;color:#888;font-size:0.85em'>"
-                f"🕐 行情更新于 {time_str}</div>",
+                f"🕐 {t('行情更新于')} {time_str}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -178,10 +179,10 @@ def _render_index_cards(indices: list[dict]):
     Layout: 5 cards per row (A-share) then 5 cards (global) on desktop.
     """
     st.markdown("---")
-    st.markdown("### 🏛️ 主要指数")
+    st.markdown(t("### 🏛️ 主要指数"))
 
     if not indices:
-        st.info("📡 指数数据暂不可用，请点击刷新按钮重试")
+        st.info(t("📡 指数数据暂不可用，请点击刷新按钮重试"))
         return
 
     # Split into rows of 5
@@ -212,7 +213,7 @@ def _render_single_card(idx: dict):
         if error or idx.get("price") is None:
             st.markdown(
                 f"<div style='font-size:1.1em;font-weight:bold;color:#999'>--</div>"
-                f"<div style='font-size:0.7em;color:#bbb'>数据获取失败</div>",
+                f"<div style='font-size:0.7em;color:#bbb'>{t('数据获取失败')}</div>",
                 unsafe_allow_html=True,
             )
             return
@@ -253,6 +254,10 @@ def _render_single_card(idx: dict):
 
 MARKET_LABELS = {"a_share": "A股", "us": "美股", "hk": "港股"}
 
+def _l(text):
+    """Translate at runtime (module-level constants can't call t())."""
+    return t(text)
+
 
 def _render_sector_section():
     """Render sector heatmap with market toggle."""
@@ -261,12 +266,12 @@ def _render_sector_section():
     # Header row with title + market toggle
     col_title, col_toggle = st.columns([2, 1])
     with col_title:
-        st.markdown("### 🏭 行业板块表现")
+        st.markdown(t("### 🏭 行业板块表现"))
     with col_toggle:
         market = st.radio(
-            "切换市场",
+            t("切换市场"),
             options=["a_share", "us", "hk"],
-            format_func=lambda m: MARKET_LABELS.get(m, m),
+            format_func=lambda m: _l(MARKET_LABELS.get(m, m)),
             horizontal=True,
             key="sector_market",
             label_visibility="collapsed",
@@ -281,7 +286,7 @@ def _render_sector_section():
 def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
     """Render sector performance as a treemap + optional detail table."""
     if sectors is None or sectors.empty:
-        st.info(f"📡 {MARKET_LABELS.get(market, market)}行业板块数据暂不可用")
+        st.info(t("📡 {market}行业板块数据暂不可用").format(market=t(MARKET_LABELS.get(market, market))))
         return
 
     # Prepare data
@@ -295,7 +300,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
 
     # Ensure we have the needed columns
     if "name" not in df.columns or "change_pct" not in df.columns:
-        st.info("📡 行业数据格式异常，请稍后重试")
+        st.info(t("📡 行业数据格式异常，请稍后重试"))
         return
 
     # Treemap
@@ -303,7 +308,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
 
     fig = px.treemap(
         df,
-        path=[px.Constant("全部板块"), "name"],
+        path=[px.Constant(t("全部板块")), "name"],
         values=volume_col,
         color="change_pct",
         color_continuous_scale=[
@@ -322,7 +327,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
         texttemplate="<b>%{label}</b><br>%{customdata[0]:+.2f}%%",
         textposition="middle center",
         textfont_size=14,
-        hovertemplate="<b>%{label}</b><br>涨跌幅: %{customdata[0]:+.2f}%%<br>最新价: %{customdata[1]:.2f}<extra></extra>",
+        hovertemplate=t("<b>%{label}</b><br>涨跌幅: %{customdata[0]:+.2f}%%<br>最新价: %{customdata[1]:.2f}<extra></extra>"),
         marker=dict(cornerradius=4),
     )
 
@@ -330,7 +335,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
         height=450,
         margin=dict(l=0, r=0, t=0, b=0),
         coloraxis_colorbar=dict(
-            title="涨跌幅 %",
+            title=t("涨跌幅 %"),
             tickformat="+.1f",
             len=0.5,
             y=0.5,
@@ -340,7 +345,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     # Expandable detail table
-    with st.expander("📋 查看全部行业排名"):
+    with st.expander(t("📋 查看全部行业排名")):
         display_cols = ["name", "change_pct"]
         if "price" in df.columns:
             display_cols.append("price")
@@ -348,14 +353,15 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
             display_cols.append("volume")
 
         display_df = df[display_cols].copy()
-        col_labels = {"name": "板块名称", "change_pct": "涨跌幅 (%)", "price": "最新价", "volume": "成交量"}
-        display_df = display_df.rename(columns=col_labels)
 
-        # Format percentages
-        if "涨跌幅 (%)" in display_df.columns:
-            display_df["涨跌幅 (%)"] = display_df["涨跌幅 (%)"].apply(
+        # Format percentages before renaming columns
+        if "change_pct" in display_df.columns:
+            display_df["change_pct"] = display_df["change_pct"].apply(
                 lambda x: f"{x:+.2f}%" if pd.notna(x) else "--"
             )
+
+        col_labels = {"name": t("板块名称"), "change_pct": t("涨跌幅 (%)"), "price": t("最新价"), "volume": t("成交量")}
+        display_df = display_df.rename(columns=col_labels)
 
         st.dataframe(
             display_df,
@@ -375,10 +381,10 @@ def _render_macro_cards(macro: dict):
                change_pct, unit, error.
     """
     st.markdown("---")
-    st.markdown("### 🌍 宏观指标")
+    st.markdown(t("### 🌍 宏观指标"))
 
     if not macro:
-        st.info("📡 宏观数据暂不可用")
+        st.info(t("📡 宏观数据暂不可用"))
         return
 
     # Define display order
@@ -431,7 +437,7 @@ def _render_macro_card(data: dict):
             )
         elif data.get("error"):
             st.markdown(
-                f"<div style='font-size:0.7em;color:#bbb'>加载失败</div>",
+                f"<div style='font-size:0.7em;color:#bbb'>{t('加载失败')}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -445,11 +451,11 @@ def _render_etf_movers(movers: list[dict]):
         movers: List of dicts with ticker, name, asset_class, price, change_pct.
     """
     st.markdown("---")
-    st.markdown("### 📈 ETF 涨跌榜")
-    st.caption("基于5日累计收益排名")
+    st.markdown(t("### 📈 ETF 涨跌榜"))
+    st.caption(t("基于5日累计收益排名"))
 
     if not movers:
-        st.info("📡 ETF 数据暂不可用")
+        st.info(t("📡 ETF 数据暂不可用"))
         return
 
     # Separate gainers and losers
@@ -460,16 +466,16 @@ def _render_etf_movers(movers: list[dict]):
     col_g, col_l = st.columns(2)
 
     with col_g:
-        st.markdown("#### 🔴 涨幅榜")
+        st.markdown(t("#### 🔴 涨幅榜"))
         if not gainers:
-            st.caption("暂无上涨ETF")
+            st.caption(t("暂无上涨ETF"))
         for rank, etf in enumerate(gainers, 1):
             _render_mover_row(rank, etf)
 
     with col_l:
-        st.markdown("#### 🟢 跌幅榜")
+        st.markdown(t("#### 🟢 跌幅榜"))
         if not losers:
-            st.caption("暂无下跌ETF")
+            st.caption(t("暂无下跌ETF"))
         for rank, etf in enumerate(losers, 1):
             _render_mover_row(rank, etf)
 
@@ -536,13 +542,13 @@ def show():
     _render_header()
 
     # ── Phase 1: Fast data (prices, sectors, macro) ──────────────────────
-    with st.spinner("⚡ 正在获取实时行情...（约2-3秒）"):
+    with st.spinner(t("⚡ 正在获取实时行情...（约2-3秒）")):
         snapshot = _fetch_snapshot_cached()
 
     indices = snapshot.get("indices", [])
 
     # ── Phase 2: Slow data (sparklines, ETF movers) ─────────────────────
-    with st.spinner("📈 正在加载走势图和ETF数据...（首次约10-15秒，后续从缓存秒出）"):
+    with st.spinner(t("📈 正在加载走势图和ETF数据...（首次约10-15秒，后续从缓存秒出）")):
         history = _fetch_history_cached()
 
     # Merge sparklines into index data
@@ -578,9 +584,9 @@ def show():
     # Footer
     st.markdown("---")
     st.caption(
-        "⚠️ 数据仅供参考，不构成投资建议。指数和ETF价格可能存在15-30分钟延迟。"
-        "数据来源：Yahoo Finance（实时行情）、AKShare（走势图及ETF数据）。"
-        "点击「刷新行情」仅更新价格数据；走势图和ETF涨跌榜每小时自动更新。"
+        t("⚠️ 数据仅供参考，不构成投资建议。指数和ETF价格可能存在15-30分钟延迟。"
+          "数据来源：Yahoo Finance（实时行情）、AKShare（走势图及ETF数据）。"
+          "点击「刷新行情」仅更新价格数据；走势图和ETF涨跌榜每小时自动更新。")
     )
 
 

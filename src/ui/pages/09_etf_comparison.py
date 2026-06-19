@@ -24,6 +24,7 @@ from src.engine.metrics import (
     max_drawdown,
 )
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +60,12 @@ def _build_selector_options(assets: list[dict]) -> dict[str, list[tuple[str, str
         {"A股 · 股票": [(label, ticker, asset_info), ...], ...}
     """
     market_labels = {
-        "a_share": "A股", "hk": "港股", "us": "美股", "korea": "韩国",
-        "us_cross": "A股跨境",
+        "a_share": t("A股"), "hk": t("港股"), "us": t("美股"), "korea": t("韩国"),
+        "us_cross": t("A股跨境"),
     }
     class_labels = {
-        "equity": "股票", "bond": "债券", "gold": "黄金", "real_estate": "地产",
-        "sector": "行业板块",
+        "equity": t("股票"), "bond": t("债券"), "gold": t("黄金"), "real_estate": t("地产"),
+        "sector": t("行业板块"),
     }
 
     groups: dict[str, list[tuple[str, str, dict]]] = {}
@@ -80,9 +81,9 @@ def _build_selector_options(assets: list[dict]) -> dict[str, list[tuple[str, str
         elif region:
             display_market = market_labels.get(region, region.upper())
         elif market == "hk":
-            display_market = "港股"
+            display_market = t("港股")
         else:
-            display_market = "国际"
+            display_market = t("国际")
 
         display_class = class_labels.get(cls, cls)
         group_key = f"{display_market} · {display_class}"
@@ -151,7 +152,7 @@ def _compute_metrics(prices: pd.Series) -> dict:
     """
     daily_rets = prices.pct_change().dropna()
     if len(daily_rets) < 20:
-        return {"error": "数据不足（至少需要20个交易日）"}
+        return {"error": t("数据不足（至少需要20个交易日）")}
 
     rets_arr = daily_rets.values
     ann_ret = annualized_return(rets_arr)
@@ -207,7 +208,7 @@ def _compute_metrics(prices: pd.Series) -> dict:
     }
 
 
-@st.cache_data(ttl=300, show_spinner="正在拉取历史数据并计算指标...")
+@st.cache_data(ttl=300, show_spinner=t("正在拉取历史数据并计算指标..."))
 def _compute_comparison_cached(
     ticker_a: str, yahoo_a: str, market_a: str, ak_a: str,
     ticker_b: str, yahoo_b: str, market_b: str, ak_b: str,
@@ -232,11 +233,11 @@ def _compute_comparison_cached(
     prices_b = _fetch_etf_prices(ticker_b, info_b, period)
 
     if prices_a.empty and prices_b.empty:
-        return {"error": "两只 ETF 数据均获取失败，请稍后重试"}
+        return {"error": t("两只 ETF 数据均获取失败，请稍后重试")}
     if prices_a.empty:
-        return {"error": f"{ticker_a} 数据获取失败"}
+        return {"error": ticker_a + t(" 数据获取失败")}
     if prices_b.empty:
-        return {"error": f"{ticker_b} 数据获取失败"}
+        return {"error": ticker_b + t(" 数据获取失败")}
 
     # Compute individual metrics
     metrics_a = _compute_metrics(prices_a)
@@ -336,7 +337,7 @@ def _render_main_chart(result: dict):
     dates, norm_a, norm_b = result["norm_chart"]
 
     if not dates:
-        st.info("数据不足以绘制走势图")
+        st.info(t("数据不足以绘制走势图"))
         return
 
     fig = go.Figure()
@@ -376,7 +377,7 @@ def _render_main_chart(result: dict):
         hovermode="x unified",
         xaxis=dict(showgrid=False, zeroline=False),
         yaxis=dict(showgrid=True, gridcolor="#f0f0f0", zeroline=False,
-                   title="起点 = 100"),
+                   title=t("起点 = 100")),
         plot_bgcolor="white",
     )
 
@@ -385,8 +386,8 @@ def _render_main_chart(result: dict):
 
 def _render_compare_rows(metrics_a: dict, metrics_b: dict, ticker_a: str, ticker_b: str):
     """Render Alipay-style comparison rows — label in center, values on sides, winner highlighted."""
-    st.markdown("### 指标对比")
-    st.caption("🔴 红色 = 更优 —— 绿色 = 较劣")
+    st.markdown(t("### 指标对比"))
+    st.caption(t("🔴 红色 = 更优 —— 绿色 = 较劣"))
 
     for label, key, fmt, higher_better in _COMPARE_ROWS:
         val_a = metrics_a.get(key)
@@ -408,7 +409,7 @@ def _render_compare_rows(metrics_a: dict, metrics_b: dict, ticker_a: str, ticker
             f"<div style='flex:1;text-align:right;padding-right:16px;font-size:1.05em;"
             f"color:{color_a};font-weight:{weight_a}'>{str_a}</div>"
             f"<div style='flex:0 0 auto;text-align:center;min-width:120px;"
-            f"color:#888;font-size:0.85em'>{label}</div>"
+            f"color:#888;font-size:0.85em'>{t(label)}</div>"
             f"<div style='flex:1;text-align:left;padding-left:16px;font-size:1.05em;"
             f"color:{color_b};font-weight:{weight_b}'>{str_b}</div>"
             f"</div>"
@@ -419,7 +420,7 @@ def _render_compare_rows(metrics_a: dict, metrics_b: dict, ticker_a: str, ticker
 def _render_correlation_bar(corr: dict):
     """Render correlation as a simple visual bar + 4 stats."""
     st.markdown("---")
-    st.markdown("### 🔗 相关性")
+    st.markdown(t("### 🔗 相关性"))
 
     pearson = corr.get("pearson", 0)
     r2 = corr.get("r_squared", 0)
@@ -432,7 +433,7 @@ def _render_correlation_bar(corr: dict):
 
     st.markdown(
         f"<div style='margin:8px 0'>"
-        f"<span style='font-size:0.9em;color:#888'>Pearson 相关系数</span><br>"
+        f"<span style='font-size:0.9em;color:#888'>{t('Pearson 相关系数')}</span><br>"
         f"<span style='font-size:2em;font-weight:bold;color:{bar_color}'>{pearson:+.4f}</span>"
         f"</div>",
         unsafe_allow_html=True,
@@ -451,14 +452,14 @@ def _render_correlation_bar(corr: dict):
     # Four stat cards
     cols = st.columns(4)
     with cols[0]:
-        st.metric("判定系数 R²", f"{r2:.4f}")
+        st.metric(t("判定系数 R²"), f"{r2:.4f}")
     with cols[1]:
-        st.metric("共同上涨", f"{both_up:.1f}%")
+        st.metric(t("共同上涨"), f"{both_up:.1f}%")
     with cols[2]:
-        st.metric("共同下跌", f"{both_down:.1f}%")
+        st.metric(t("共同下跌"), f"{both_down:.1f}%")
     with cols[3]:
-        label = "高度相关" if abs_p > 0.7 else ("中度相关" if abs_p > 0.4 else "低度相关")
-        st.metric("相关程度", label)
+        label = t("高度相关") if abs_p > 0.7 else (t("中度相关") if abs_p > 0.4 else t("低度相关"))
+        st.metric(t("相关程度"), label)
 
 
 def _render_drawdown_chart(metrics_a: dict, metrics_b: dict, ticker_a: str, ticker_b: str):
@@ -489,7 +490,7 @@ def _render_drawdown_chart(metrics_a: dict, metrics_b: dict, ticker_a: str, tick
         hovermode="x unified", yaxis=dict(ticksuffix="%"),
         plot_bgcolor="white",
     )
-    st.markdown("#### 📉 回撤曲线")
+    st.markdown(t("#### 📉 回撤曲线"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
@@ -504,7 +505,7 @@ def _render_rolling_corr_chart(result: dict):
         x=corr_dates, y=corr_vals, mode="lines",
         line=dict(color="#8e44ad", width=1.5),
         fill="tozeroy", fillcolor="rgba(142,68,173,0.08)",
-        name="60日滚动相关性",
+        name=t("60日滚动相关性"),
     ))
     fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
     fig.update_layout(
@@ -512,7 +513,7 @@ def _render_rolling_corr_chart(result: dict):
         showlegend=False, hovermode="x unified",
         yaxis=dict(range=[-1, 1]), plot_bgcolor="white",
     )
-    st.markdown("#### 🟣 60日滚动相关性")
+    st.markdown(t("#### 🟣 60日滚动相关性"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
@@ -543,10 +544,10 @@ def _render_distribution_chart(metrics_a: dict, metrics_b: dict, ticker_a: str, 
         height=300, margin=dict(l=20, r=20, t=10, b=20),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         barmode="overlay", plot_bgcolor="white",
-        xaxis=dict(ticksuffix="%", title="日收益率"),
-        yaxis=dict(title="概率密度"),
+        xaxis=dict(ticksuffix="%", title=t("日收益率")),
+        yaxis=dict(title=t("概率密度")),
     )
-    st.markdown("#### 📊 日收益分布")
+    st.markdown(t("#### 📊 日收益分布"))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
@@ -555,8 +556,8 @@ def _render_distribution_chart(metrics_a: dict, metrics_b: dict, ticker_a: str, 
 def show():
     """Display the ETF Comparison page — Alipay fund comparison style."""
     render_sidebar()
-    st.title("📈 ETF 对比工具")
-    st.caption("选两只 ETF，一眼看出谁更强 —— 红色突出优胜方")
+    st.title(t("📈 ETF 对比工具"))
+    st.caption(t("选两只 ETF，一眼看出谁更强 —— 红色突出优胜方"))
 
     # Load ETF list
     assets = _load_etf_list()
@@ -575,7 +576,7 @@ def show():
     option_labels = [opt[0] for opt in all_options]
 
     with col_a:
-        idx_a = st.selectbox("ETF A", range(len(option_labels)),
+        idx_a = st.selectbox(t("ETF A"), range(len(option_labels)),
                              format_func=lambda i: option_labels[i], key="etf_a")
 
     with col_vs:
@@ -584,23 +585,24 @@ def show():
 
     with col_b:
         default_b = min(1, len(option_labels) - 1)
-        idx_b = st.selectbox("ETF B", range(len(option_labels)),
+        idx_b = st.selectbox(t("ETF B"), range(len(option_labels)),
                              format_func=lambda i: option_labels[i],
                              index=default_b if default_b != idx_a else min(default_b + 1, len(option_labels) - 1),
                              key="etf_b")
 
     with col_p:
-        period_label = st.selectbox("周期", list(PERIOD_OPTIONS.keys()), index=2)
+        period_label = st.selectbox(t("周期"), list(PERIOD_OPTIONS.keys()), index=2,
+                                     format_func=lambda k: t(k))
         period = PERIOD_OPTIONS[period_label]
 
     # Compare button
     col_btn, _ = st.columns([1, 3])
     with col_btn:
-        compare_clicked = st.button("📊 开始对比", type="primary", use_container_width=True)
+        compare_clicked = st.button(t("📊 开始对比"), type="primary", use_container_width=True)
 
     if compare_clicked:
         if idx_a == idx_b:
-            st.warning("请选择两只不同的 ETF 进行对比")
+            st.warning(t("请选择两只不同的 ETF 进行对比"))
             return
 
         _, ticker_a, info_a = all_options[idx_a]
@@ -609,7 +611,7 @@ def show():
         name_a = info_a.get("name", ticker_a)
         name_b = info_b.get("name", ticker_b)
 
-        with st.spinner(f"正在对比 {ticker_a} vs {ticker_b}..."):
+        with st.spinner(t("正在对比 ") + ticker_a + t(" vs ") + ticker_b + "..."):
             result = _compute_comparison_cached(
                 ticker_a, info_a.get("yahoo_symbol", ticker_a),
                 info_a.get("market", ""), info_a.get("ak_symbol", ticker_a),
@@ -643,7 +645,7 @@ def show():
                         f"<p style='text-align:center;color:#888;font-size:0.85em'>{name_b}</p>",
                         unsafe_allow_html=True)
 
-        st.caption(f"对比周期：{period_label}")
+        st.caption(t("对比周期：") + t(period_label))
 
         # ── Hero chart: price overlay ──
         _render_main_chart(result)
@@ -655,7 +657,7 @@ def show():
         _render_correlation_bar(result["correlation"])
 
         # ── Collapsible: additional charts ──
-        with st.expander("📉 更多分析图表", expanded=False):
+        with st.expander(t("📉 更多分析图表"), expanded=False):
             _render_drawdown_chart(result["metrics_a"], result["metrics_b"], ticker_a, ticker_b)
             _render_rolling_corr_chart(result)
             _render_distribution_chart(result["metrics_a"], result["metrics_b"], ticker_a, ticker_b)
@@ -663,16 +665,16 @@ def show():
     else:
         # Show ETF overview table before comparison
         st.markdown("---")
-        st.markdown("### 📋 可选 ETF 一览")
-        st.caption("从下表中选择两只 ETF，点击「开始对比」进行分析")
+        st.markdown(t("### 📋 可选 ETF 一览"))
+        st.caption(t("从下表中选择两只 ETF，点击「开始对比」进行分析"))
 
         overview = []
         for _, ticker, info in all_options:
             overview.append({
-                "代码": ticker,
-                "名称": info.get("name", ""),
-                "资产类别": {"equity": "股票", "bond": "债券", "gold": "黄金", "real_estate": "地产"}.get(info.get("_class", ""), ""),
-                "市场": info.get("market", info.get("region", "")),
+                t("代码"): ticker,
+                t("名称"): info.get("name", ""),
+                t("资产类别"): {"equity": t("股票"), "bond": t("债券"), "gold": t("黄金"), "real_estate": t("地产")}.get(info.get("_class", ""), ""),
+                t("市场"): info.get("market", info.get("region", "")),
             })
 
         st.dataframe(overview, use_container_width=True, hide_index=True, height=350)

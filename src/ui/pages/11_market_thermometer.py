@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.ui.components.sidebar import render_sidebar
+from src.ui.i18n import t, _
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,13 +36,11 @@ def _fetch_temperature_cached() -> dict:
 
 def _render_header():
     """Render page title and description."""
-    st.title("🌡️ 市场温度计")
+    st.title(t("🌡️ 市场温度计"))
     st.markdown(
         "<p style='color:#888;font-size:0.95em'>"
-        "综合 PE 估值 + 价格偏离均线，判断当前 A 股市场冷热 · "
-        "数据每天自动更新 · PE 来源：中证指数官网 · "
-        "覆盖上证50 / 沪深300 / 中证500 / 中证1000"
-        "</p>",
+        + t("综合 PE 估值 + 价格偏离均线，判断当前 A 股市场冷热 · 数据每天自动更新 · PE 来源：中证指数官网 · 覆盖上证50 / 沪深300 / 中证500 / 中证1000")
+        + "</p>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
@@ -51,7 +50,7 @@ def _render_header():
 
 def _render_temperature_cards(indices: list[dict]):
     """Render 4 index temperature cards in a row."""
-    st.markdown("### 📊 指数估值温度")
+    st.markdown(t("### 📊 指数估值温度"))
 
     cols = st.columns(4, gap="small")
 
@@ -82,7 +81,7 @@ def _render_single_card(idx: dict):
         if error or temp is None:
             st.markdown(
                 "<div style='color:#bbb;font-size:0.85em;padding:12px 0'>"
-                "数据暂不可用</div>",
+                + t("数据暂不可用") + "</div>",
                 unsafe_allow_html=True,
             )
             return
@@ -103,7 +102,7 @@ def _render_single_card(idx: dict):
             sign = "+" if ma_dev > 0 else ""
             st.markdown(
                 f"<div style='margin-bottom:2px'>"
-                f"<span style='font-size:0.7em;color:#888'>偏离200日均线 </span>"
+                f"<span style='font-size:0.7em;color:#888'>{t('偏离200日均线')} </span>"
                 f"<span style='font-size:0.9em;font-weight:600;color:{ma_color}'>{sign}{ma_dev:.1f}%</span>"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -129,11 +128,11 @@ def _render_single_card(idx: dict):
             detail_parts.append(f"PE={pe_score:.0f}°")
         if ma_score is not None:
             detail_parts.append(f"MA={ma_score:.0f}°")
-        detail_text = " · ".join(detail_parts) if detail_parts else "仅PE估值"
+        detail_text = " · ".join(detail_parts) if detail_parts else t("仅PE估值")
 
         st.markdown(
             f"<div style='font-size:0.75em;color:#888;margin-top:2px'>"
-            f"综合温度 <b>{pct_val:.0f}°C</b>"
+            t("综合温度 **{pct:.0f}°C**").format(pct=pct_val)
             f"<span style='font-size:0.65em;color:#bbb;margin-left:4px'>"
             f"({detail_text})</span>"
             f"</div>",
@@ -166,7 +165,7 @@ def _render_temp_bar(pct: float, color: str):
 def _render_pe_chart(indices: list[dict]):
     """Render PE history chart with zone bands for a selected index."""
     st.markdown("---")
-    st.markdown("### 📈 PE 估值走势")
+    st.markdown(t("### 📈 PE 估值走势"))
 
     valid_indices = [
         idx for idx in indices
@@ -174,12 +173,12 @@ def _render_pe_chart(indices: list[dict]):
     ]
 
     if not valid_indices:
-        st.info("📡 PE 历史数据暂不可用（中证指数官网仅提供近20个交易日数据）")
+        st.info(t("📡 PE 历史数据暂不可用（中证指数官网仅提供近20个交易日数据）"))
         return
 
     names = [idx["name"] for idx in valid_indices]
     selected_name = st.selectbox(
-        "选择指数",
+        t("选择指数"),
         options=names,
         label_visibility="collapsed",
         key="pe_chart_index",
@@ -189,12 +188,12 @@ def _render_pe_chart(indices: list[dict]):
     pe_df = selected.get("pe_history")
 
     if pe_df is None or pe_df.empty:
-        st.info("📡 该指数 PE 历史数据暂不可用")
+        st.info(t("📡 该指数 PE 历史数据暂不可用"))
         return
 
     pe_values = pe_df["pe"].dropna()
     if len(pe_values) < 2:
-        st.info("📡 PE 数据点不足，无法绘制走势图")
+        st.info(t("📡 PE 数据点不足，无法绘制走势图"))
         return
 
     current_pe = selected.get("pe_current", pe_values.iloc[-1])
@@ -218,7 +217,7 @@ def _render_pe_chart(indices: list[dict]):
         line_dash="dash",
         line_color=RED_UP,
         line_width=1.5,
-        annotation_text=f"当前: {current_pe:.1f}",
+        annotation_text=t("当前: {val:.1f}").format(val=current_pe),
         annotation_position="top right",
     )
 
@@ -226,14 +225,14 @@ def _render_pe_chart(indices: list[dict]):
         height=400,
         margin=dict(l=20, r=20, t=10, b=20),
         xaxis_title="",
-        yaxis_title="市盈率 (PE)",
+        yaxis_title=t("市盈率 (PE)"),
         hovermode="x unified",
         plot_bgcolor="white",
     )
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    st.caption("💡 PE数据来自中证指数官网，每日盘后更新。走势图展示近20个交易日。")
+    st.caption(t("💡 PE数据来自中证指数官网，每日盘后更新。走势图展示近20个交易日。"))
 
 
 # ── Row 3: Price vs MA chart ─────────────────────────────────────────────────
@@ -241,7 +240,7 @@ def _render_pe_chart(indices: list[dict]):
 def _render_price_chart(indices: list[dict]):
     """Render price vs 200MA chart for a selected index."""
     st.markdown("---")
-    st.markdown("### 📊 价格偏离均线")
+    st.markdown(t("### 📊 价格偏离均线"))
 
     valid_indices = [
         idx for idx in indices
@@ -249,12 +248,12 @@ def _render_price_chart(indices: list[dict]):
     ]
 
     if not valid_indices:
-        st.info("📡 价格数据暂不可用")
+        st.info(t("📡 价格数据暂不可用"))
         return
 
     names = [idx["name"] for idx in valid_indices]
     selected_name = st.selectbox(
-        "选择指数",
+        t("选择指数"),
         options=names,
         label_visibility="collapsed",
         key="price_chart_index",
@@ -264,7 +263,7 @@ def _render_price_chart(indices: list[dict]):
     price_df = selected.get("price_history")
 
     if price_df is None or price_df.empty:
-        st.info("📡 该指数价格数据暂不可用")
+        st.info(t("📡 该指数价格数据暂不可用"))
         return
 
     # Price line
@@ -275,8 +274,8 @@ def _render_price_chart(indices: list[dict]):
         y=price_df["close"],
         mode="lines",
         line=dict(color="#37474F", width=1.5),
-        name="收盘价",
-        hovertemplate="%{x|%Y-%m-%d}<br>收盘: %{y:.0f}<extra></extra>",
+        name=t("收盘价"),
+        hovertemplate="%{x|%Y-%m-%d}<br>" + t("收盘") + ": %{y:.0f}<extra></extra>",
     ))
 
     # 200MA line
@@ -287,7 +286,7 @@ def _render_price_chart(indices: list[dict]):
             y=ma_data["ma200"],
             mode="lines",
             line=dict(color="#FF9800", width=1.8, dash="dash"),
-            name="200日均线",
+            name=t("200日均线"),
             hovertemplate="%{x|%Y-%m-%d}<br>200MA: %{y:.0f}<extra></extra>",
         ))
 
@@ -299,7 +298,7 @@ def _render_price_chart(indices: list[dict]):
         height=380,
         margin=dict(l=20, r=20, t=10, b=20),
         xaxis_title="",
-        yaxis_title="指数点位",
+        yaxis_title=t("指数点位"),
         hovermode="x unified",
         plot_bgcolor="white",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
@@ -309,8 +308,10 @@ def _render_price_chart(indices: list[dict]):
 
     st.markdown(
         f"<p style='font-size:0.85em;color:#888'>"
-        f"当前偏离200日均线: <span style='color:{dev_color};font-weight:600'>{sign}{ma_dev:.1f}%</span> · "
-        f"价格高于均线 → 可能偏热 · 价格低于均线 → 可能偏冷</p>",
+        + t("当前偏离200日均线: ")
+        + f"<span style='color:{dev_color};font-weight:600'>{sign}{ma_dev:.1f}%</span>"
+        + t(" · 价格高于均线 → 可能偏热 · 价格低于均线 → 可能偏冷")
+        + "</p>",
         unsafe_allow_html=True,
     )
 
@@ -320,10 +321,10 @@ def _render_price_chart(indices: list[dict]):
 def _render_overall(overall: dict, indices: list[dict]):
     """Render the combined market temperature summary card."""
     st.markdown("---")
-    st.markdown("### 📊 A 股综合温度")
+    st.markdown(t("### 📊 A 股综合温度"))
 
     if overall is None:
-        st.info("📡 综合温度数据暂不可用")
+        st.info(t("📡 综合温度数据暂不可用"))
         return
 
     pct = overall.get("percentile", 50)
@@ -339,7 +340,7 @@ def _render_overall(overall: dict, indices: list[dict]):
     with col_text:
         st.markdown(
             f"<div style='font-size:1.6em;font-weight:700;color:{color};margin-top:12px'>"
-            f"综合温度 {pct:.0f}°C — {label}</div>",
+            t("综合温度") + f" {pct:.0f}°C — {label}</div>",
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -351,7 +352,7 @@ def _render_overall(overall: dict, indices: list[dict]):
         # Methodology note
         st.markdown(
             "<p style='font-size:0.8em;color:#888;margin-top:8px'>"
-            "温度构成：PE估值（权重60%）+ 价格偏离200日均线（权重40%）</p>",
+            + t("温度构成：PE估值（权重60%）+ 价格偏离200日均线（权重40%）") + "</p>",
             unsafe_allow_html=True,
         )
 
@@ -409,8 +410,8 @@ def _render_gauge(pct: float, color: str, label: str):
     )
 
     # Cold/Hot labels
-    fig.add_annotation(x=-0.65, y=0.95, text="🧊 0°", showarrow=False, font=dict(size=10, color="#2196F3"))
-    fig.add_annotation(x=0.65, y=0.95, text="💥 100°", showarrow=False, font=dict(size=10, color="#f44336"))
+    fig.add_annotation(x=-0.65, y=0.95, text=t("🧊 0°"), showarrow=False, font=dict(size=10, color="#2196F3"))
+    fig.add_annotation(x=0.65, y=0.95, text=t("💥 100°"), showarrow=False, font=dict(size=10, color="#f44336"))
 
     fig.update_layout(
         polar=dict(
@@ -435,7 +436,7 @@ def show():
 
     _render_header()
 
-    with st.spinner("🌡️ 正在计算市场温度...（首次约 5-10 秒，后续秒出）"):
+    with st.spinner(t("🌡️ 正在计算市场温度...（首次约 5-10 秒，后续秒出）")):
         data = _fetch_temperature_cached()
 
     indices = data.get("indices", [])
@@ -458,11 +459,8 @@ def show():
     ts = data.get("timestamp")
     time_str = ts.strftime("%Y-%m-%d %H:%M") if isinstance(ts, datetime) else ""
     st.caption(
-        "🌡️ 市场温度计 — 磐策 PánCè · "
-        "温度 = PE估值(60%) + 价格偏离200日均线(40%) · "
-        "PE数据来源：中证指数官网 csindex.com.cn · "
-        "仅供参考，不构成投资建议。"
-        f" · 数据更新于 {time_str}"
+        t("🌡️ 市场温度计 — 磐策 PánCè · 温度 = PE估值(60%) + 价格偏离200日均线(40%) · PE数据来源：中证指数官网 csindex.com.cn · 仅供参考，不构成投资建议。 · 数据更新于 ")
+        + time_str
     )
 
 
