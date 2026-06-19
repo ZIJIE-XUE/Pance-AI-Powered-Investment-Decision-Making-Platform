@@ -170,6 +170,7 @@ def _render_config() -> dict:
         index_name = st.selectbox(
             t("基准指数"),
             options=["沪深300", "上证50", "中证500", "中证1000"],
+            format_func=lambda x: t(x),
             index=0,
             help=t("回测基准指数，沪深300最能代表A股整体走势"),
         )

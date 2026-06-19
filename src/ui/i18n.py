@@ -1,4 +1,4 @@
-"""I18n: Chinese-English translation via a flat dictionary + t() helper.
+﻿"""I18n: Chinese-English translation via a flat dictionary + t() helper.
 
 Usage:
     from src.ui.i18n import t, _
@@ -65,6 +65,10 @@ TRANSLATIONS = {
     # ── Sidebar: other ─────────────────────────────────────────────────────
     "稳如磐石 · 策定乾坤":                {"en": "Steady as a Rock · Strategic Foresight"},
     "投资有风险 · 入市需谨慎":            {"en": "Investing involves risk. Trade cautiously."},
+
+    "未指定":                               {"en": "Not specified"},
+    "投资者":                               {"en": "Investor"},
+    "⚠️ 请先在首页填写基本信息":            {"en": "⚠️ Please fill in your basic info on the home page first"},
 
     # =====================================================================
     # SECTION: 00_landing.py (Homepage)
@@ -182,6 +186,150 @@ TRANSLATIONS = {
     "正在分析您的风险承受能力...":            {"en": "Analyzing your risk tolerance..."},
     "✅ 测评完成！":                           {"en": "✅ Assessment complete!"},
     "测评提交失败：":                          {"en": "Assessment submission failed: "},
+
+    # ── 02_risk_assessment: questionnaire ──────────────────────────────────
+    "投资者风险承受能力测评":                  {"en": "Investor Risk Tolerance Assessment"},
+    "请回答以下问题，我们将根据您的回答评估您的风险承受能力等级。": {
+        "en": "Please answer the following questions. We will assess your risk tolerance level based on your responses."
+    },
+    "⏰ 投资期限":                             {"en": "⏰ Investment Horizon"},
+    "💰 财务状况":                             {"en": "💰 Financial Situation"},
+    "🎯 风险承受":                             {"en": "🎯 Risk Tolerance"},
+    "📈 投资偏好":                             {"en": "📈 Investment Preference"},
+    "📚 知识与经验":                           {"en": "📚 Knowledge & Experience"},
+
+    # ── 02_risk_assessment: questions ──────────────────────────────────────
+    "您的年龄范围是？":                        {"en": "What is your age range?"},
+    "您计划的投资期限是？":                    {"en": "What is your planned investment horizon?"},
+    "您的年收入水平（人民币）？":              {"en": "What is your annual income level (RMB)?"},
+    "您的可投资资产占总资产的比例？":          {"en": "What percentage of your total assets is investable?"},
+    "如果市场下跌20%，您会怎么做？":           {"en": "If the market drops 20%, what would you do?"},
+    "您能接受的最大年度亏损是多少？":          {"en": "What is the maximum annual loss you can accept?"},
+    "您更看重投资的哪个方面？":                {"en": "Which aspect of investing do you value most?"},
+    "您对投资产品的了解程度？":                {"en": "How familiar are you with investment products?"},
+    "您是否有稳定的应急储备金（3-6个月开支）？": {"en": "Do you have a stable emergency fund (3-6 months of expenses)?"},
+    "您期望的年化投资回报率是？":              {"en": "What annualized return do you expect?"},
+    "当您的投资组合价值波动时，您的感受是？":  {"en": "How do you feel when your portfolio value fluctuates?"},
+    "您的投资经验年限？":                      {"en": "How many years of investment experience do you have?"},
+
+    # ── 02_risk_assessment: Q1 options (age) ───────────────────────────────
+    "60岁以上":                                {"en": "Over 60"},
+    "50-60岁":                                 {"en": "50-60"},
+    "40-50岁":                                 {"en": "40-50"},
+    "30-40岁":                                 {"en": "30-40"},
+    "30岁以下":                                {"en": "Under 30"},
+
+    # ── 02_risk_assessment: Q2 options (horizon) ───────────────────────────
+    "1年以内":                                 {"en": "Under 1 year"},
+    "1-3年":                                   {"en": "1-3 years"},
+    "3-5年":                                   {"en": "3-5 years"},
+    "5-10年":                                  {"en": "5-10 years"},
+    "10年以上":                                {"en": "Over 10 years"},
+
+    # ── 02_risk_assessment: Q3 options (income) ────────────────────────────
+    "10万以下":                                {"en": "Under 100K"},
+    "10-30万":                                 {"en": "100K-300K"},
+    "30-60万":                                 {"en": "300K-600K"},
+    "60-100万":                                {"en": "600K-1M"},
+    "100万以上":                               {"en": "Over 1M"},
+
+    # ── 02_risk_assessment: Q4 options (ratio) ─────────────────────────────
+    "10%以下":                                 {"en": "Under 10%"},
+    "10%-25%":                                 {"en": "10%-25%"},
+    "25%-50%":                                 {"en": "25%-50%"},
+    "50%-75%":                                 {"en": "50%-75%"},
+    "75%以上":                                 {"en": "Over 75%"},
+
+    # ── 02_risk_assessment: Q5 options (drop) ──────────────────────────────
+    "立即卖出所有投资":                        {"en": "Sell all investments immediately"},
+    "卖出一部分减少损失":                      {"en": "Sell part to reduce losses"},
+    "观望等待市场稳定":                        {"en": "Wait and observe until market stabilizes"},
+    "继续持有不做变动":                        {"en": "Hold and make no changes"},
+    "逢低加仓买入更多":                        {"en": "Buy more at lower prices"},
+
+    # ── 02_risk_assessment: Q6 options (loss) ──────────────────────────────
+    "不能接受任何亏损":                        {"en": "Cannot accept any loss"},
+    "5%以内":                                  {"en": "Within 5%"},
+    "5%-15%":                                  {"en": "5%-15%"},
+    "15%-25%":                                 {"en": "15%-25%"},
+    "25%以上":                                 {"en": "Over 25%"},
+
+    # ── 02_risk_assessment: Q7 options (priority) ──────────────────────────
+    "本金绝对安全":                            {"en": "Absolute principal safety"},
+    "稳定现金流入":                            {"en": "Stable cash flow"},
+    "兼顾收益和增长":                          {"en": "Balance of income and growth"},
+    "长期资本增值":                            {"en": "Long-term capital appreciation"},
+    "最大化回报":                              {"en": "Maximize returns"},
+
+    # ── 02_risk_assessment: Q8 options (knowledge) ─────────────────────────
+    "完全不了解":                              {"en": "No knowledge at all"},
+    "了解基础产品（存款、理财）":              {"en": "Know basic products (deposits, wealth mgmt)"},
+    "了解基金和债券":                          {"en": "Know funds and bonds"},
+    "了解股票和ETF":                           {"en": "Know stocks and ETFs"},
+    "专业投资者水平":                          {"en": "Professional investor level"},
+
+    # ── 02_risk_assessment: Q9 options (emergency) ─────────────────────────
+    "没有":                                    {"en": "None"},
+    "有1-2个月":                               {"en": "1-2 months"},
+    "有2-3个月":                               {"en": "2-3 months"},
+    "有3-6个月":                               {"en": "3-6 months"},
+    "超过6个月":                               {"en": "Over 6 months"},
+
+    # ── 02_risk_assessment: Q10 options (return) ───────────────────────────
+    "跑赢通胀即可（3%-5%）":                   {"en": "Beat inflation (3%-5%)"},
+    "5%-8%":                                   {"en": "5%-8%"},
+    "8%-12%":                                  {"en": "8%-12%"},
+    "12%-15%":                                 {"en": "12%-15%"},
+    "15%以上":                                 {"en": "Over 15%"},
+
+    # ── 02_risk_assessment: Q11 options (feeling) ──────────────────────────
+    "非常焦虑，无法入睡":                      {"en": "Very anxious, can't sleep"},
+    "比较担心，经常查看":                      {"en": "Quite worried, check frequently"},
+    "有些紧张但可以接受":                      {"en": "Somewhat nervous but acceptable"},
+    "认为这是正常的市场波动":                  {"en": "View it as normal market volatility"},
+    "完全不受影响":                            {"en": "Completely unaffected"},
+
+    # ── 02_risk_assessment: Q12 options (experience) ───────────────────────
+    "无任何投资经验":                          {"en": "No investment experience"},
+    "1年以下":                                 {"en": "Under 1 year"},
+    "1-3年":                                   {"en": "1-3 years"},
+    "3-7年":                                   {"en": "3-7 years"},
+    "7年以上":                                 {"en": "Over 7 years"},
+
+    # ── 02_risk_assessment: risk levels ────────────────────────────────────
+    "保守型":                                  {"en": "Conservative"},
+    "稳健型":                                  {"en": "Moderate"},
+    "平衡型":                                  {"en": "Balanced"},
+    "成长型":                                  {"en": "Growth"},
+    "激进型":                                  {"en": "Aggressive"},
+
+    # ── 02_risk_assessment: risk descriptions ──────────────────────────────
+	"以资本保值为首要目标，接受极低风险。适合短期投资或无法承受损失的投资者。": {
+	    "en": "Primary goal is capital preservation with very low risk tolerance. Suitable for short-term investors or those who cannot bear losses."
+	},
+	"以稳定收益为主，追求适度增长。适合风险承受能力较低的保守投资者。": {
+	    "en": "Focus on stable returns with moderate growth. Suitable for conservative investors with low risk tolerance."
+	},
+	"在增长和收益之间寻求平衡。适合有一定风险承受能力的中期投资者。": {
+	    "en": "Seek balance between growth and income. Suitable for medium-term investors with moderate risk tolerance."
+	},
+	"追求长期资本增值，愿意接受较高波动。适合长期投资且风险承受能力较强的投资者。": {
+	    "en": "Pursue long-term capital appreciation, accepting higher volatility. Suitable for long-term investors with strong risk tolerance."
+	},
+	"最大化长期回报，接受高波动和较大回撤。适合风险承受能力极强的长期投资者。": {
+	    "en": "Maximize long-term returns, accepting high volatility and large drawdowns. Suitable for long-term investors with very strong risk tolerance."
+	},
+
+    # ── 02_risk_assessment: result display ─────────────────────────────────
+    "## 测评结果":                             {"en": "## Assessment Result"},
+    "风险承受能力评分":                        {"en": "Risk Tolerance Score"},
+    "风险等级解读：":                          {"en": "Risk Level Interpretation:"},
+    "### 各维度得分明细":                      {"en": "### Dimension Score Breakdown"},
+    "投资期限":                                {"en": "Investment Horizon"},
+    "财务状况":                                {"en": "Financial Situation"},
+    "风险承受":                                {"en": "Risk Tolerance"},
+    "投资偏好":                                {"en": "Investment Preference"},
+    "知识经验":                                {"en": "Knowledge & Experience"},
 
     # =====================================================================
     # SECTION: 03_portfolio.py
@@ -511,6 +659,17 @@ TRANSLATIONS = {
         "en": "📚 Investment Glossary — 磐策 PánCè Knowledge Base. For educational reference only, not investment advice."
     },
 
+    # ── Glossary category names (from YAML) ──────────────────────────────
+    "基础概念":                              {"en": "Basic Concepts"},
+    "股票市场":                              {"en": "Stock Market"},
+    "基金与ETF":                             {"en": "Funds & ETFs"},
+    "债券与固收":                            {"en": "Bonds & Fixed Income"},
+    "风险管理":                              {"en": "Risk Management"},
+    "财务指标":                              {"en": "Financial Metrics"},
+    "宏观经济":                              {"en": "Macroeconomics"},
+    "投资策略":                              {"en": "Investment Strategy"},
+    "全部":                                  {"en": "All"},
+
     # =====================================================================
     # SECTION: 11_market_thermometer.py
     # =====================================================================
@@ -556,6 +715,23 @@ TRANSLATIONS = {
     },
     "🧊 0°":                                        {"en": "🧊 0°"},
     "💥 100°":                                      {"en": "💥 100°"},
+
+    # ── 11_market_thermometer: index info ─────────────────────────────────
+    "大盘蓝筹":                                 {"en": "Large-cap Blue Chip"},
+    "核心基准":                                 {"en": "Core Benchmark"},
+    "中盘成长":                                 {"en": "Mid-cap Growth"},
+    "小盘风向标":                               {"en": "Small-cap Bellwether"},
+    "🧊 极度低估":                              {"en": "🧊 Deep Undervalue"},
+    "❄️ 偏低":                                  {"en": "❄️ Cool"},
+    "🌡️ 适中":                                  {"en": "🌡️ Moderate"},
+    "🔥 偏贵":                                  {"en": "🔥 Expensive"},
+    "💥 高估":                                  {"en": "💥 Overvalued"},
+    "估值处于历史底部区域，可积极加仓":         {"en": "Valuation at historical bottom. Consider aggressive buying."},
+    "估值低于正常水平，可适当多投":             {"en": "Valuation below normal. Consider increasing investments."},
+    "估值处于合理区间，维持正常定投":           {"en": "Valuation in reasonable range. Maintain regular DCA."},
+    "估值高于正常水平，建议减少定投金额":       {"en": "Valuation above normal. Consider reducing DCA amount."},
+    "估值处于历史高位，建议暂停定投并考虑减仓": {"en": "Valuation at historical high. Consider pausing DCA and reducing positions."},
+    "维持正常定投":                             {"en": "Maintain regular DCA"},
 
     # =====================================================================
     # SECTION: 12_temperature_dca.py
@@ -826,6 +1002,44 @@ TRANSLATIONS = {
     },
 
     # =====================================================================
+    # SECTION: Additional dynamic strings
+    # =====================================================================
+    "第{year}年":                            {"en": "Year {year}"},
+    "{ratio}% 回报率":                       {"en": "{ratio}% return"},
+    "第 %{x} 年<br>累计本金: ¥%{y:,.0f}<extra></extra>": {
+        "en": "Yr %{x}<br>Cum. Principal: ¥%{y:,.0f}<extra></extra>"
+    },
+    "第 %{x} 年<br>累计总值: ¥%{y:,.0f}<extra></extra>": {
+        "en": "Yr %{x}<br>Cum. Value: ¥%{y:,.0f}<extra></extra>"
+    },
+    "第 %{x} 年<br>总资产: ¥%{y:,.0f}<extra></extra>": {
+        "en": "Yr %{x}<br>Total Assets: ¥%{y:,.0f}<extra></extra>"
+    },
+    "目标: ¥{target:,.0f}":                  {"en": "Target: ¥{target:,.0f}"},
+    "年数":                                  {"en": "Years"},
+    "金额 (¥)":                              {"en": "Amount (¥)"},
+    "起点 = 100":                            {"en": "Start = 100"},
+    "Pearson 相关系数":                      {"en": "Pearson Correlation"},
+    "日收益率":                              {"en": "Daily Return"},
+    "概率密度":                              {"en": "Probability Density"},
+    "收盘":                                  {"en": "Close"},
+    "综合温度":                              {"en": "Composite Temp"},
+    "当前: {val:.1f}":                       {"en": "Current: {val:.1f}"},
+    "市盈率 (PE)":                           {"en": "P/E Ratio"},
+    "组合价值 (¥)":                          {"en": "Portfolio Value (¥)"},
+    "组合终值 (¥)":                          {"en": "Final Portfolio Value (¥)"},
+    "频次":                                  {"en": "Frequency"},
+    "中位数 (P50)":                          {"en": "Median (P50)"},
+    "P5 (悲观)":                             {"en": "P5 (Pessimistic)"},
+    "P50 (中位)":                            {"en": "P50 (Median)"},
+    "P95 (乐观)":                            {"en": "P95 (Optimistic)"},
+    "终值分布":                              {"en": "Final Value Distribution"},
+    "<b>%{label}</b><br>涨跌幅: %{customdata[0]:+.2f}%%<br>最新价: %{customdata[1]:.2f}<extra></extra>": {
+        "en": "<b>%{label}</b><br>Change: %{customdata[0]:+.2f}%%<br>Price: %{customdata[1]:.2f}<extra></extra>"
+    },
+    "📡 {market}行业板块数据暂不可用":       {"en": "📡 {market} sector data temporarily unavailable"},
+
+    # =====================================================================
     # SECTION: Sidebar: help text
     # =====================================================================
     "**🎯 风险测评及投资建议**":            {"en": "**🎯 Risk Assessment & Investment Advice**"},
@@ -862,6 +1076,10 @@ TRANSLATIONS = {
     "所有数据在会话期间保存，\n刷新页面后需要重新开始。": {
         "en": "All data is saved during the session.\nRefreshing the page will restart."
     },
+	# -- Chart labels --
+	"风险画像": {"en": "Risk Profile"},
+	"风险评分": {"en": "Risk Score"},
+
 }
 
 

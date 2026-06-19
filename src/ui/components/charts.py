@@ -2,6 +2,7 @@
 
 import plotly.graph_objects as go
 import plotly.express as px
+from src.ui.i18n import t, _
 
 
 def create_gauge_chart(
@@ -92,7 +93,7 @@ def create_waterfall_chart(
 
 def create_risk_radar(
     category_scores: dict[str, float],
-    title: str = "风险画像",
+    title: str = "",
 ) -> go.Figure:
     """Create a radar/spider chart for risk category scores.
 
@@ -103,12 +104,15 @@ def create_risk_radar(
     Returns:
         Plotly figure.
     """
+    if not title:
+        title = t("风险画像")
+
     cat_labels = {
-        "time_horizon": "投资期限",
-        "financial_situation": "财务状况",
-        "risk_tolerance": "风险承受",
-        "investment_preference": "投资偏好",
-        "knowledge_experience": "知识经验",
+        "time_horizon": t("投资期限"),
+        "financial_situation": t("财务状况"),
+        "risk_tolerance": t("风险承受"),
+        "investment_preference": t("投资偏好"),
+        "knowledge_experience": t("知识经验"),
     }
 
     categories = [cat_labels.get(k, k) for k in category_scores.keys()]
@@ -121,7 +125,7 @@ def create_risk_radar(
             fill="toself",
             marker=dict(color="#4285f4"),
             line=dict(color="#1a237e", width=2),
-            name="风险评分",
+            name=t("风险评分"),
         )
     )
 

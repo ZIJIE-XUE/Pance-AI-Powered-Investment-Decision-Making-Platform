@@ -44,6 +44,8 @@ def show():
     st.title(t("🎯 风险承受能力测评"))
 
     # Check if user profile exists in session state
+
+    # Check if user profile exists in session state
     if "user" not in st.session_state or st.session_state.user is None:
         st.warning(t("⚠️ 请先在首页填写您的基本信息"))
         if st.button(t("前往首页")):
@@ -62,7 +64,7 @@ def show():
         st.success(t("✅ 测评已完成！"))
         st.markdown(
             t("**风险等级：** {label} （评分：{score:.0f}%）").format(
-                label=risk_profile['risk_level_label'],
+                label=t(risk_profile['risk_level_label']),
                 score=risk_profile['total_score'] * 100,
             )
         )

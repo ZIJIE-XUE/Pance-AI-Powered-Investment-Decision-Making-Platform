@@ -61,8 +61,8 @@ def _render_temperature_cards(indices: list[dict]):
 
 def _render_single_card(idx: dict):
     """Render a single index temperature card."""
-    name = idx.get("name", "--")
-    desc = idx.get("desc", "")
+    name = t(idx.get("name", "--"))
+    desc = t(idx.get("desc", ""))
     error = idx.get("error")
     pe_current = idx.get("pe_current")
     ma_dev = idx.get("ma_deviation_pct")
@@ -110,7 +110,7 @@ def _render_single_card(idx: dict):
 
         # Temperature zone
         color = temp.get("color", "#9E9E9E")
-        label = temp.get("zone_label", "--")
+        label = t(temp.get("zone_label", "--"))
         pct_val = temp.get("percentile", 50.0)
 
         st.markdown(
@@ -130,9 +130,10 @@ def _render_single_card(idx: dict):
             detail_parts.append(f"MA={ma_score:.0f}°")
         detail_text = " · ".join(detail_parts) if detail_parts else t("仅PE估值")
 
+        temp_label = t("综合温度 **{pct:.0f}°C**").format(pct=pct_val)
         st.markdown(
             f"<div style='font-size:0.75em;color:#888;margin-top:2px'>"
-            t("综合温度 **{pct:.0f}°C**").format(pct=pct_val)
+            f"{temp_label}"
             f"<span style='font-size:0.65em;color:#bbb;margin-left:4px'>"
             f"({detail_text})</span>"
             f"</div>",
@@ -140,7 +141,7 @@ def _render_single_card(idx: dict):
         )
 
         # Suggestion
-        suggestion = temp.get("suggestion", "")
+        suggestion = t(temp.get("suggestion", ""))
         st.markdown(
             f"<div style='font-size:0.78em;color:#555;margin-top:6px;"
             f"padding:6px 8px;background:#f8f9fa;border-radius:6px'>"
@@ -329,8 +330,8 @@ def _render_overall(overall: dict, indices: list[dict]):
 
     pct = overall.get("percentile", 50)
     color = overall.get("color", "#9E9E9E")
-    label = overall.get("zone_label", "--")
-    suggestion = overall.get("suggestion", "")
+    label = t(overall.get("zone_label", "--"))
+    suggestion = t(overall.get("suggestion", ""))
 
     col_vis, col_text = st.columns([1, 2])
 
@@ -338,9 +339,10 @@ def _render_overall(overall: dict, indices: list[dict]):
         _render_gauge(pct, color, label)
 
     with col_text:
+        overall_temp_label = t("综合温度")
         st.markdown(
             f"<div style='font-size:1.6em;font-weight:700;color:{color};margin-top:12px'>"
-            t("综合温度") + f" {pct:.0f}°C — {label}</div>",
+            f"{overall_temp_label} {pct:.0f}°C — {label}</div>",
             unsafe_allow_html=True,
         )
         st.markdown(

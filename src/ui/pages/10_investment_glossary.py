@@ -67,7 +67,7 @@ def _render_filters(glossary: dict, cat_map: dict):
         # Build category options
         cat_keys = ["all"] + [cat["key"] for cat in glossary.get("categories", [])]
         cat_labels = [t("📂 全部")] + [
-            f"{cat['icon']} {cat['name']}" for cat in glossary.get("categories", [])
+            f"{cat['icon']} {t(cat['name'])}" for cat in glossary.get("categories", [])
         ]
         selected = st.selectbox(
             t("类别筛选"),
@@ -119,7 +119,7 @@ def _render_term_card(term: dict, cat_map: dict):
     """
     cat_info = cat_map.get(term.get("category", ""), {})
     cat_icon = cat_info.get("icon", "")
-    cat_name = cat_info.get("name", term.get("category", ""))
+    cat_name = t(cat_info.get("name", term.get("category", "")))
 
     difficulty = term.get("difficulty", "beginner")
     diff_color = {

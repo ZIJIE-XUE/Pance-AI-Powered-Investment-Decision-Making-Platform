@@ -19,7 +19,7 @@ from src.utils.logging_config import setup_logging
 
 # Page configuration
 st.set_page_config(
-    page_title="磐策 PánCè - AI 智能投顾",
+    page_title="磐策 PánCè",
     page_icon="⛰️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -260,7 +260,7 @@ def main():
         # Returning user — show progress and next step
         st.markdown(
             '<div class="landing-hero" style="padding:24px 32px">'
-            f'<h1 style="font-size:1.2em;margin:0">{t("👋 欢迎回来，")}{st.session_state.user.get("display_name") or "投资者"}</h1>'
+            f'<h1 style="font-size:1.2em;margin:0">{t("👋 欢迎回来，")}{st.session_state.user.get("display_name") or t("投资者")}</h1>'
             '</div>',
             unsafe_allow_html=True,
         )

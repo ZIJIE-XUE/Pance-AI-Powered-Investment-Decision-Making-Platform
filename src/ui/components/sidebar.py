@@ -200,7 +200,7 @@ def render_sidebar():
         # User info
         if st.session_state.get("user"):
             user = st.session_state.user
-            name = user.get("display_name") or "投资者"
+            name = user.get("display_name") or t("投资者")
             email = user.get("email", "")
             markets = user.get("preferred_markets", "")
             markets_html = f"<br><small style='color:#888'>🌍 {markets}</small>" if markets else ""
@@ -232,7 +232,7 @@ def render_sidebar():
         )
         total = len(WORKFLOW_STEPS)
         st.progress(completed_count / total,
-                    text=f"⏳ {completed_count}/{total} {t('已完成') if get_lang() == 'en' else '已完成'}")
+                    text=f"⏳ {completed_count}/{total} {t('已完成')}")
 
         latest_idx = _latest_step_index()
         for i, (page_file, title, icon, desc, key) in enumerate(WORKFLOW_STEPS):

@@ -61,7 +61,7 @@ def show():
     risk_level = risk_profile["risk_level"]
     st.info(
         t("🎯 您的风险等级：**{label}** | 评分：**{score:.0f}%**").format(
-            label=risk_level_label,
+            label=t(risk_level_label),
             score=risk_profile['total_score'] * 100,
         )
     )

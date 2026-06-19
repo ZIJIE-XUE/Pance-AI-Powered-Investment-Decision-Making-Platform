@@ -51,7 +51,7 @@ def show():
         t("**风险等级：** {risk_label} | "
           "**组合预期收益：** {expected_return:.2f}% | "
           "**Sharpe Ratio：** {sharpe:.2f}").format(
-            risk_label=st.session_state.risk_profile['risk_level_label'],
+            risk_label=t(st.session_state.risk_profile['risk_level_label']),
             expected_return=st.session_state.portfolio['expected_return'] * 100,
             sharpe=st.session_state.portfolio['sharpe_ratio'],
         )
