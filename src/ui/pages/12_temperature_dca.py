@@ -36,7 +36,7 @@ ZONE_COLORS = {
 
 # ── Data loading (cached) ────────────────────────────────────────────────────
 
-_CACHE_VERSION = "v3"  # bump to invalidate stale caches after engine changes (added regime_analysis + signal validation)
+_CACHE_VERSION = "v4"  # bump — added PE coverage stats to data_quality
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def _fetch_backtest_data(
@@ -604,6 +604,11 @@ def _render_signal_validation(config: dict):
         # Interpretation
         st.info(corr["interpretation"])
 
+    # PE data coverage note
+    pe_note = dq.get("pe_coverage_note", "")
+    if pe_note:
+        st.caption(f"📡 {pe_note}")
+
     # ── Bucket analysis ────────────────────────────────────────────────────
     buckets = validation.get("bucket_analysis", [])
     if buckets:
@@ -1143,6 +1148,12 @@ def _render_footer(backtest: dict):
         f"数据更新于 {ts} · "
         f"历史回测不代表未来收益，仅供参考"
     )
+
+    # Data quality note — prominent when PE coverage is incomplete
+    pe_note = dq.get("pe_coverage_note", "")
+    if pe_note:
+        st.markdown("")
+        st.info(f"📡 **数据覆盖说明**：{pe_note}")
 
 
 # ── Main entry ───────────────────────────────────────────────────────────────

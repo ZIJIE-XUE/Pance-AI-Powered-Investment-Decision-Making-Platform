@@ -575,6 +575,10 @@ def run_backtest(
         monthly_df, pe_df, idx_def["pe_thresholds"], pe_weight=pe_weight
     )
 
+    # PE data coverage (CSIndex only provides ~20 trading days)
+    pe_available_months = int(monthly_df["pe_score"].notna().sum()) if "pe_score" in monthly_df.columns else 0
+    pe_coverage_pct = round(pe_available_months / len(monthly_df) * 100, 1) if len(monthly_df) > 0 else 0.0
+
     # ── 4. Simulate three strategies ──────────────────────────────────────────
     temp_dca = _simulate_temperature_dca(monthly_df, base_monthly, strategy_name)
     regular_dca = _simulate_regular_dca(monthly_df, base_monthly)
@@ -629,6 +633,14 @@ def run_backtest(
         "data_quality": {
             "data_source": data_source,
             "has_pe_data": has_pe,
+            "pe_coverage_pct": pe_coverage_pct,
+            "pe_coverage_note": (
+                f"PE数据覆盖 {pe_available_months}/{len(monthly_df)} 个月（{pe_coverage_pct}%）。"
+                f"CSIndex 接口仅提供近~20个交易日PE数据，回测中绝大部分月份回退为纯MA偏离信号。"
+                f"温度=PE×{pe_weight:.0%}+MA×{1-pe_weight:.0%} 的权重仅在PE可用的月份生效。"
+            ) if has_pe else (
+                "PE数据不可用，全部回退为MA偏离信号（温度=MA偏离×100%）。"
+            ),
             "total_months": len(monthly_df),
             "date_start": date_start.strftime("%Y-%m-%d") if hasattr(date_start, "strftime") else str(date_start)[:10],
             "date_end": date_end.strftime("%Y-%m-%d") if hasattr(date_end, "strftime") else str(date_end)[:10],
@@ -869,6 +881,15 @@ def validate_temperature_signal(
         monthly_df, pe_df, idx_def["pe_thresholds"], pe_weight=0.6
     )
 
+    # PE data coverage
+    pe_available_months = int(monthly_df["pe_score"].notna().sum()) if "pe_score" in monthly_df.columns else 0
+    pe_coverage_pct = round(pe_available_months / len(monthly_df) * 100, 1) if len(monthly_df) > 0 else 0.0
+    pe_note = (
+        f"PE数据覆盖 {pe_available_months}/{len(monthly_df)} 个月（{pe_coverage_pct}%）。"
+        f"CSIndex 接口仅提供近~20个交易日PE数据，信号验证中绝大部分月份回退为纯MA偏离信号。"
+        f"相关性分析主要反映MA偏离信号的预测能力，PE的贡献未充分验证。"
+    ) if has_pe else "PE数据不可用，信号验证完全基于MA偏离。"
+
     if monthly_df.empty or len(monthly_df) < 15:
         return {"error": f"月度数据不足（仅 {len(monthly_df)} 个月），无法验证。"}
 
@@ -974,6 +995,8 @@ def validate_temperature_signal(
             "years_requested": years,
             "data_source": data_source,
             "has_pe_data": has_pe,
+            "pe_coverage_pct": pe_coverage_pct,
+            "pe_coverage_note": pe_note,
         },
     }
 
