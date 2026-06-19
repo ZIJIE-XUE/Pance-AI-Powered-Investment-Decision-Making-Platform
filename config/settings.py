@@ -43,10 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def anthropic_api_key(self) -> str:
-        if not self.ANTHROPIC_API_KEY:
-            raise ValueError(
-                "ANTHROPIC_API_KEY is not set. Please configure it in .env"
-            )
+        """Return API key if configured, empty string otherwise."""
         return self.ANTHROPIC_API_KEY
 
 

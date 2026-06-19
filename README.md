@@ -189,7 +189,7 @@ pytest tests/unit/ -v               # 仅单元测试
 
 ---
 
-© 2026 磐策 PánCè. Built by Jason & Claude.
+© 2026 磐策 PánCè. Built by Jason-XUE
 
 ---
 

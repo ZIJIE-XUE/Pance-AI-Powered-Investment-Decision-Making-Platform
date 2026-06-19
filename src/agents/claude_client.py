@@ -7,8 +7,6 @@ import asyncio
 import json
 from typing import Any
 
-import anthropic
-
 from config.settings import settings
 from src.agents.prompt_manager import prompt_manager
 from src.utils.exceptions import (
@@ -35,6 +33,8 @@ class ClaudeClient:
     """
 
     def __init__(self):
+        import anthropic
+
         self.model = settings.CLAUDE_MODEL
 
         if not settings.ANTHROPIC_API_KEY:
@@ -68,6 +68,8 @@ class ClaudeClient:
             ClaudeRateLimitError: On persistent rate limiting.
             ClaudeRefusalError: If Claude refuses the request.
         """
+        import anthropic
+
         if self.client is None:
             raise ClaudeAPIError("ANTHROPIC_API_KEY is not configured — please set it in .env or use local engine")
 
