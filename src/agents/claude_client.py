@@ -3,6 +3,8 @@
 Handles API calls, retries, streaming support, and structured output.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 from typing import Any
