@@ -13,9 +13,7 @@ if str(project_root) not in sys.path:
 
 import streamlit as st
 
-from src.ui.components.sidebar import render_sidebar
 from src.ui.i18n import t, _
-from src.utils.logging_config import setup_logging
 
 # Page configuration
 st.set_page_config(
@@ -54,8 +52,9 @@ def init_session_state():
             st.session_state[key] = default_value
 
 
+@st.cache_resource
 def _ensure_database():
-    """Create database tables if they don't exist. Called on every app startup."""
+    """Create database tables if they don't exist. Called once per session."""
     from src.db.database import init_db_sync
     init_db_sync()
 
@@ -244,9 +243,30 @@ def _render_next_step():
 
 def main():
     """Main Streamlit app entry point."""
+    from src.utils.logging_config import setup_logging
+    from src.ui.components.sidebar import render_sidebar
+
     setup_logging()
-    _ensure_database()
-    init_session_state()
+
+    lang = st.session_state.get("lang", "zh")
+    if lang == "en":
+        loading_text = "⏳ Data is loading, please wait..."
+        db_text = "Initializing database..."
+        session_text = "Loading session state..."
+        done_text = "✅ Ready!"
+    else:
+        loading_text = "⏳ 数据正在加载，请稍后..."
+        db_text = "正在初始化数据库..."
+        session_text = "正在加载会话状态..."
+        done_text = "✅ 加载完成！"
+
+    with st.status(loading_text, expanded=False) as status:
+        st.write(db_text)
+        _ensure_database()
+        st.write(session_text)
+        init_session_state()
+        status.update(label=done_text, state="complete", expanded=False)
+
     render_sidebar()
     _inject_css()
 

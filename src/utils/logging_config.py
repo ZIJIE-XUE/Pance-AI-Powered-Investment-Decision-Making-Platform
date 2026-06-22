@@ -2,11 +2,11 @@
 
 import logging
 import structlog
-from config.settings import settings
 
 
 def setup_logging() -> None:
     """Configure structlog for structured JSON logging."""
+    from config.settings import settings
 
     # Set the log level on the standard library
     logging.basicConfig(
