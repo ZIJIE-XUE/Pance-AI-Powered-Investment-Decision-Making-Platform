@@ -10,10 +10,10 @@ import streamlit as st
 
 from src.services.advisor_service import AdvisorService
 from src.ui.components.sidebar import render_sidebar
-from src.ui.i18n import t, _
+from src.ui.i18n import t, _, get_lang
 
 
-async def _get_advisor_response(user, risk_profile, portfolio, simulation):
+async def _get_advisor_response(user, risk_profile, portfolio, simulation, lang="zh"):
     """Get AI advisor analysis."""
     service = AdvisorService()
     return await service.get_explanation(
@@ -21,6 +21,7 @@ async def _get_advisor_response(user, risk_profile, portfolio, simulation):
         risk_profile=risk_profile,
         portfolio=portfolio,
         simulation=simulation,
+        lang=lang,
     )
 
 
@@ -98,6 +99,7 @@ def show():
                         risk_profile=st.session_state.risk_profile,
                         portfolio=st.session_state.portfolio,
                         simulation=st.session_state.simulation,
+                        lang=get_lang(),
                     )
                 )
 

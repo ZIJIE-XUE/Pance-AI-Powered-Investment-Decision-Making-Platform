@@ -10,7 +10,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.ui.components.sidebar import render_sidebar
-from src.ui.i18n import t, _
+from src.ui.i18n import t, _, get_lang
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -138,10 +138,17 @@ def _render_term_card(term: dict, cat_map: dict):
         col_name, col_badges = st.columns([3, 1.2])
 
         with col_name:
+            # In English mode, show English name as primary
+            if get_lang() == 'en':
+                primary = term['name_en']
+                secondary = term['name_zh']
+            else:
+                primary = term['name_zh']
+                secondary = term['name_en']
             st.markdown(
-                f"<span style='font-size:1.15em;font-weight:600'>{term['name_zh']}</span>"
+                f"<span style='font-size:1.15em;font-weight:600'>{primary}</span>"
                 f"&nbsp;&nbsp;"
-                f"<span style='color:#888;font-size:0.85em'>{term['name_en']}</span>",
+                f"<span style='color:#888;font-size:0.85em'>{secondary}</span>",
                 unsafe_allow_html=True,
             )
 
@@ -159,9 +166,13 @@ def _render_term_card(term: dict, cat_map: dict):
             )
 
         # Row 2: Definition
+        if get_lang() == 'en' and term.get('definition_en'):
+            def_text = term['definition_en'].strip()
+        else:
+            def_text = term['definition'].strip()
         st.markdown(
             f"<p style='margin-top:8px;margin-bottom:6px;line-height:1.7;color:#444;font-size:0.93em'>"
-            f"{term['definition'].strip()}</p>",
+            f"{def_text}</p>",
             unsafe_allow_html=True,
         )
 

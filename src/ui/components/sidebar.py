@@ -203,7 +203,8 @@ def render_sidebar():
             name = user.get("display_name") or t("投资者")
             email = user.get("email", "")
             markets = user.get("preferred_markets", "")
-            markets_html = f"<br><small style='color:#888'>🌍 {markets}</small>" if markets else ""
+            markets_display = ", ".join([t(m.strip()) for m in markets.split(",")]) if markets else ""
+            markets_html = f"<br><small style='color:#888'>🌍 {markets_display}</small>" if markets else ""
             st.markdown(
                 f"<div style='padding:8px 12px;border-radius:8px;background:#f0f4ff;margin:8px 0'>"
                 f"<strong>👤 {name}</strong><br>"

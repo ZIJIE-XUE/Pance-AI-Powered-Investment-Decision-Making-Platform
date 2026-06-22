@@ -205,7 +205,7 @@ def _render_single_card(idx: dict):
     with st.container(border=True):
         # Index name
         st.markdown(
-            f"<div style='font-size:0.8em;color:#888;margin-bottom:2px'>{idx['name']}</div>",
+            f"<div style='font-size:0.8em;color:#888;margin-bottom:2px'>{t(idx['name'])}</div>",
             unsafe_allow_html=True,
         )
 
@@ -291,6 +291,9 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
 
     # Prepare data
     df = sectors.copy()
+    # Translate sector names for display
+    if "name" in df.columns:
+        df["name"] = df["name"].apply(lambda x: t(str(x)))
     # Round percentages to 2 decimal places
     if "change_pct" in df.columns:
         df["change_pct"] = df["change_pct"].round(2)
@@ -320,7 +323,7 @@ def _render_sector_heatmap(sectors: pd.DataFrame, market: str):
         ],
         color_continuous_midpoint=0,
         range_color=[-5, 5],
-        hover_data={"change_pct": ":.2f%", "price": ":.2f"} if "price" in df.columns else {"change_pct": ":.2f%"},
+        hover_data={"change_pct": ":.2f", "price": ":.2f"} if "price" in df.columns else {"change_pct": ":.2f"},
     )
 
     fig.update_traces(
@@ -400,7 +403,7 @@ def _render_macro_cards(macro: dict):
 def _render_macro_card(data: dict):
     """Render a single macro indicator card."""
     with st.container(border=True):
-        name = data.get("name", "--")
+        name = t(data.get("name", "--"))
         value = data.get("value")
         unit = data.get("unit", "")
         change = data.get("change")

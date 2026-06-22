@@ -212,7 +212,7 @@ def _display_portfolio_result(portfolio: dict):
         for a in allocations:
             table_data.append({
                 t("代码"): a["ticker"],
-                t("名称"): a["name"],
+                t("名称"): t(a["name"]),
                 t("资产类别"): a["asset_class"],
                 t("配置比例"): f"{a['weight'] * 100:.2f}%",
                 t("预期收益"): f"{a['expected_return'] * 100:.2f}%",

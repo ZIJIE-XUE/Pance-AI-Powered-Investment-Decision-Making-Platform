@@ -91,7 +91,7 @@ def _build_selector_options(assets: list[dict]) -> dict[str, list[tuple[str, str
         if group_key not in groups:
             groups[group_key] = []
 
-        label = f"{a['ticker']} — {a['name']}"
+        label = f"{a['ticker']} — {t(a['name'])}"
         groups[group_key].append((label, a["ticker"], a))
 
     return groups
@@ -672,7 +672,7 @@ def show():
         for _, ticker, info in all_options:
             overview.append({
                 t("代码"): ticker,
-                t("名称"): info.get("name", ""),
+                t("名称"): t(info.get("name", "")),
                 t("资产类别"): {"equity": t("股票"), "bond": t("债券"), "gold": t("黄金"), "real_estate": t("地产")}.get(info.get("_class", ""), ""),
                 t("市场"): info.get("market", info.get("region", "")),
             })

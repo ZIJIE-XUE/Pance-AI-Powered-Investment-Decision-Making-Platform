@@ -36,6 +36,7 @@ class ReportBuilder:
         portfolio: dict,
         simulation: dict,
         advisor_response: dict | None = None,
+        lang: str = "zh",
     ) -> str:
         """Assemble and generate a complete PDF investment report.
 
@@ -68,7 +69,7 @@ class ReportBuilder:
 
             logger.info("building_pdf", path=output_path)
 
-            pdf = PDFGenerator(output_path)
+            pdf = PDFGenerator(output_path, lang=lang)
 
             # Assemble all report sections
             pdf.add_cover_page(user_info)

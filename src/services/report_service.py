@@ -35,6 +35,7 @@ class ReportService:
         portfolio: dict | None,
         simulation: dict | None,
         advisor_response: dict | None = None,
+        lang: str = "zh",
     ) -> ReportMetadata:
         """Generate a PDF investment report.
 
@@ -69,6 +70,7 @@ class ReportService:
                 portfolio=portfolio or {},
                 simulation=simulation or {},
                 advisor_response=advisor_response,
+                lang=lang,
             )
 
             # Update record

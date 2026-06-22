@@ -93,7 +93,8 @@ def show():
             st.metric(t("投资目标"), user.get("investment_goal", t("未指定")))
             markets = user.get("preferred_markets", "A股,港股,美股")
             if markets:
-                st.metric(t("意向市场"), markets)
+                markets_display = ", ".join([t(m.strip()) for m in markets.split(",")])
+                st.metric(t("意向市场"), markets_display)
 
         col_edit, col_next, _ = st.columns([1, 1, 2])
         with col_edit:
@@ -166,6 +167,7 @@ def show():
         preferred_markets = st.multiselect(
             t("意向市场"),
             options=["A股", "港股", "美股", "韩国"],
+            format_func=lambda x: t(x),
             default=["A股", "港股", "美股"],
             help=t("可多选。投资组合中的股票类资产将只从您选择的市场中挑选"),
         )

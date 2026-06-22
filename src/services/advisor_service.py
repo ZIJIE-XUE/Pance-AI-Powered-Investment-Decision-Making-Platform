@@ -76,9 +76,9 @@ class AdvisorService:
             class_weights=class_weights_display,
         )
 
-    def _cache_key(self, portfolio_id: str, simulation_id: str) -> str:
-        """Generate a cache key for advisor responses."""
-        combined = f"{portfolio_id}:{simulation_id}"
+    def _cache_key(self, portfolio_id: str, simulation_id: str, lang: str = "zh") -> str:
+        """Generate a cache key for advisor responses (includes lang to avoid cross-language cache hits)."""
+        combined = f"{portfolio_id}:{simulation_id}:{lang}"
         hashed = hashlib.md5(combined.encode()).hexdigest()[:16]
         return f"advisor:{hashed}"
 
@@ -88,6 +88,7 @@ class AdvisorService:
         risk_profile: dict,
         portfolio: dict,
         simulation: dict,
+        lang: str = "zh",
     ) -> AdvisorResponse:
         """Generate AI investment analysis for the user's portfolio.
 
@@ -107,6 +108,7 @@ class AdvisorService:
         cache_key = self._cache_key(
             portfolio.get("id", ""),
             simulation.get("id", ""),
+            lang=lang,
         )
         cached = cache_service.get(cache_key)
         if cached is not None:
@@ -121,7 +123,7 @@ class AdvisorService:
         context = self._build_context(user, risk_profile, portfolio, simulation)
 
         # Call agent
-        response = await self.agent.run(context)
+        response = await self.agent.run(context, lang=lang)
 
         # Cache response
         cache_service.set(

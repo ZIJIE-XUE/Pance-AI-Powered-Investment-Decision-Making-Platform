@@ -11,10 +11,10 @@ import streamlit as st
 from src.services.report_service import ReportService
 from src.ui.components.sidebar import render_sidebar
 from src.db.database import async_session_factory
-from src.ui.i18n import t, _
+from src.ui.i18n import t, _, get_lang
 
 
-async def _generate_report(user_info, risk_profile, portfolio, simulation, advisor_response):
+async def _generate_report(user_info, risk_profile, portfolio, simulation, advisor_response, lang="zh"):
     """Generate PDF report."""
     session = async_session_factory()
     try:
@@ -25,6 +25,7 @@ async def _generate_report(user_info, risk_profile, portfolio, simulation, advis
             portfolio=portfolio,
             simulation=simulation,
             advisor_response=advisor_response,
+            lang=lang,
         )
         await session.commit()
         return result
@@ -92,6 +93,7 @@ def show():
                         portfolio=st.session_state.portfolio,
                         simulation=st.session_state.simulation,
                         advisor_response=st.session_state.get("advisor_response"),
+                        lang=get_lang(),
                     )
                 )
 
